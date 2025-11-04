@@ -264,10 +264,11 @@ echo "5. Import n8n workflows for automation features"
 
 echo ""
 echo "🚀 Quick start commands:"
-echo "- Setup: './scripts/setup.sh'"
+echo "- Setup: './setup.sh'"
 echo "- Start: 'npm run dev'"
 echo "- Test: './scripts/test.sh'"
 echo "- Stop: 'docker-compose down'"
+echo "- Clean reset: './cleanup.sh'"
 
 echo ""
 echo "For detailed instructions, see QUICK_START.md"
