@@ -41,45 +41,53 @@ Transform the internship search from sending applications into black holes to ma
 
 - Node.js 18+
 - Docker & Docker Compose
-- PostgreSQL 15+
-- Redis 7+
 
-### Installation
+### One-Command Setup
 
-1. **Clone the repository**
+Clone and run the setup script - it handles everything automatically:
+
 ```bash
-git clone https://github.com/your-org/pathfinder.git
-cd pathfinder
+git clone https://github.com/ebailine/EthanTestProject.git
+cd EthanTestProject
+./setup.sh
 ```
 
-2. **Set up environment variables**
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+That's it! The setup script will:
+- ✅ Check prerequisites (Node.js, Docker)
+- ✅ Start all services with health checks
+- ✅ Install all dependencies automatically
+- ✅ Set up database with proper permissions
+- ✅ Seed 50+ sample jobs for testing
+- ✅ Verify everything is working
 
-3. **Start services**
-```bash
-docker compose up -d
-```
+### Start the Application
 
-4. **Install dependencies**
-```bash
-npm install
-```
-
-5. **Set up databases**
-```bash
-npm run db:migrate
-npm run db:generate
-```
-
-6. **Start development servers**
 ```bash
 npm run dev
 ```
 
-The application will be available at http://localhost:3000
+The application will be available at:
+- **Main App**: http://localhost:3000
+- **Job Search**: http://localhost:3000/jobs
+- **n8n Dashboard**: http://localhost:5678
+- **Typesense Dashboard**: http://localhost:8108
+
+### Test Everything
+
+```bash
+./scripts/test.sh
+```
+
+### Clean Reset (if needed)
+
+```bash
+./cleanup.sh
+./setup.sh
+```
+
+### Having Issues?
+
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for solutions to common problems.
 
 ## 📁 Project Structure
 
@@ -189,10 +197,9 @@ The application uses PostgreSQL as the primary database. The schema includes:
 
 ### Running Tests
 ```bash
-npm run test              # Run all tests
-npm run test:app         # Frontend tests only
-npm run test:ingestion   # Ingestion tests only
-npm run test:e2e         # End-to-end tests
+./scripts/test.sh        # Comprehensive health check and testing
+npm run test             # Run unit tests (if available)
+npm run typecheck        # TypeScript checking
 ```
 
 ### Code Quality

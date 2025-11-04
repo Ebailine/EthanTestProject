@@ -35,19 +35,19 @@ docker-compose ps > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     print_status 0 "Docker is running"
 
-    # Check individual services
-    POSTGRES_RUNNING=$(docker-compose ps -q postgres)
-    REDIS_RUNNING=$(docker-compose ps -q redis)
-    TYPESENSE_RUNNING=$(docker-compose ps -q typesense)
-    N8N_RUNNING=$(docker-compose ps -q n8n)
+    # Check individual services with health status
+    POSTGRES_STATUS=$(docker-compose ps postgres | grep "Up\|healthy" || echo "")
+    REDIS_STATUS=$(docker-compose ps redis | grep "Up\|healthy" || echo "")
+    TYPESENSE_STATUS=$(docker-compose ps typesense | grep "Up\|healthy" || echo "")
+    N8N_STATUS=$(docker-compose ps n8n | grep "Up\|healthy" || echo "")
 
-    [ ! -z "$POSTGRES_RUNNING" ] && print_status 0 "PostgreSQL is running" || print_status 1 "PostgreSQL is not running"
-    [ ! -z "$REDIS_RUNNING" ] && print_status 0 "Redis is running" || print_status 1 "Redis is not running"
-    [ ! -z "$TYPESENSE_RUNNING" ] && print_status 0 "Typesense is running" || print_status 1 "Typesense is not running"
-    [ ! -z "$N8N_RUNNING" ] && print_status 0 "n8n is running" || print_status 1 "n8n is not running"
+    [ ! -z "$POSTGRES_STATUS" ] && print_status 0 "PostgreSQL is running and healthy" || print_status 1 "PostgreSQL is not running or unhealthy"
+    [ ! -z "$REDIS_STATUS" ] && print_status 0 "Redis is running and healthy" || print_status 1 "Redis is not running or unhealthy"
+    [ ! -z "$TYPESENSE_STATUS" ] && print_status 0 "Typesense is running and healthy" || print_status 1 "Typesense is not running or unhealthy"
+    [ ! -z "$N8N_STATUS" ] && print_status 0 "n8n is running and healthy" || print_status 1 "n8n is not running or unhealthy"
 else
     print_status 1 "Docker services are not running"
-    echo "Run 'docker-compose up -d' to start services"
+    echo "Run './setup.sh' to set up and start services"
 fi
 
 # Check if Node.js services are accessible
@@ -162,11 +162,33 @@ fi
 echo ""
 echo "🗄️ Testing database connectivity..."
 
-cd app
-if npm run db:generate 2>/dev/null; then
+# Test basic database connection
+if docker-compose exec -T postgres pg_isready -U pathfinder -d pathfinder >/dev/null 2>&1; then
     print_status 0 "Database connection is working"
 else
-    print_status 1 "Database connection failed"
+    print_status 1 "Database connection failed - run './setup.sh' to fix"
+fi
+
+# Test database permissions
+if docker-compose exec -T postgres psql -U pathfinder -d pathfinder -c "SELECT 1;" >/dev/null 2>&1; then
+    print_status 0 "Database permissions are correct"
+else
+    print_status 1 "Database permissions issue - run './setup.sh' to fix"
+fi
+
+# Test for sample data
+JOB_COUNT=$(docker-compose exec -T postgres psql -U pathfinder -d pathfinder -c "SELECT COUNT(*) FROM \"Job\";" -t 2>/dev/null | tr -d ' ' || echo "0")
+if [ "$JOB_COUNT" -gt 0 ]; then
+    print_status 0 "Sample data found: $JOB_COUNT jobs in database"
+else
+    print_status 1 "No sample data found - run 'npm run db:seed' in app directory"
+fi
+
+cd app
+if npm run db:generate >/dev/null 2>&1; then
+    print_status 0 "Prisma client generation successful"
+else
+    print_status 1 "Prisma client generation failed"
 fi
 
 cd ..
@@ -176,9 +198,19 @@ echo ""
 echo "🔧 Checking environment configuration..."
 
 if [ -f ".env" ]; then
-    print_status 0 ".env file exists"
+    print_status 0 ".env file exists in root directory"
+else
+    print_status 1 ".env file does not exist in root directory - run './setup.sh'"
+fi
 
-    # Check for required variables
+if [ -f "app/.env" ]; then
+    print_status 0 ".env file exists in app directory"
+else
+    print_status 1 ".env file does not exist in app directory - run './setup.sh'"
+fi
+
+# Check for required variables in both .env files
+if [ -f ".env" ]; then
     REQUIRED_VARS=("DATABASE_URL" "TYPESENSE_API_KEY")
     MISSING_VARS=()
 
@@ -193,8 +225,6 @@ if [ -f ".env" ]; then
     else
         print_warning "Missing environment variables: ${MISSING_VARS[*]}"
     fi
-else
-    print_status 1 ".env file does not exist"
 fi
 
 # Check file structure
@@ -234,10 +264,11 @@ echo "5. Import n8n workflows for automation features"
 
 echo ""
 echo "🚀 Quick start commands:"
-echo "- Setup: './scripts/setup.sh'"
+echo "- Setup: './setup.sh'"
 echo "- Start: 'npm run dev'"
 echo "- Test: './scripts/test.sh'"
 echo "- Stop: 'docker-compose down'"
+echo "- Clean reset: './cleanup.sh'"
 
 echo ""
 echo "For detailed instructions, see QUICK_START.md"

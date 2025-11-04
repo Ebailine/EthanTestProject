@@ -20,11 +20,10 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "@typesense/typesense": "^1.0.0",
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.0",
     "clsx": "^2.0.0",
-    "next": "14.0.0",
+    "next": "^14.2.25",
     "nodemailer": "^6.9.0",
     "postcss": "^8.4.31",
     "react": "^18.2.0",
@@ -32,13 +31,13 @@
     "react-hook-form": "^7.48.0",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.0",
-    "typesense": "^1.0.0",
+    "typesense": "^1.7.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/nodemailer": "^6.4.14",
     "eslint": "^8.50.0",
-    "eslint-config-next": "14.0.0",
+    "eslint-config-next": "^14.2.25",
     "prisma": "^5.7.0",
     "tsx": "^4.0.0"
   }
