@@ -1,0 +1,278 @@
+{
+  "name": "Company Research & Moment Extraction",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "company-research",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract job and student information from webhook\nconst webhookData = items[0].json;\nconst jobId = webhookData.jobId;\nconst studentProfile = webhookData.studentProfile;\n\n// Store in workflow variables for later use\nconst workflowData = {\n  jobId,\n  studentProfile,\n  workflowId: webhookData.workflowId || $runIndex,\n  startTime: new Date().toISOString()\n};\n\nreturn [{ json: workflowData }];"
+      },
+      "name": "Extract Request Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "table": "jobs",
+        "column": "id",
+        "value": "={{$json.jobId}}",
+        "additionalFields": {
+          "returnFields": ["id", "title", "companyId", "company", "location", "function"]
+        }
+      },
+      "name": "Fetch Job Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "table": "companies",
+        "column": "id",
+        "value": "={{$json.companyId}}",
+        "additionalFields": {
+          "returnFields": ["id", "name", "website", "domain", "linkedinUrl", "industryTags"]
+        }
+      },
+      "name": "Fetch Company Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build research URLs and fetch strategy\nconst jobData = $('Fetch Job Details').all()[0].json;\nconst companyData = $('Fetch Company Details').all()[0].json;\n\nconst baseUrl = companyData.website || `https://${companyData.domain}`;\nconst companyName = companyData.name;\n\n// Research URLs to crawl\nconst researchUrls = [\n  `${baseUrl}/about`,\n  `${baseUrl}/careers`,\n  `${baseUrl}/team`,\n  `${baseUrl}/news`,\n  `${baseUrl}/blog`,\n  `${baseUrl}/about-us`,\n  `${baseUrl}/leadership`\n].filter(url => url !== 'undefined/about'); // Filter out invalid URLs\n\n// Add LinkedIn if available\nif (companyData.linkedinUrl) {\n  researchUrls.push(companyData.linkedinUrl);\n}\n\nreturn [{\n  json: {\n    company: companyData,\n    job: jobData,\n    researchUrls,\n    totalUrls: researchUrls.length\n  }\n}];"
+      },
+      "name": "Build Research Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 350]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.researchUrls[$runIndex]}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Crawl Company Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process crawled content and extract moments\nconst responses = $('Crawl Company Pages').all();\nconst companyData = $('Build Research Plan').all()[0].json.company;\n\nconst sources = [];\nconst moments = [];\n\nresponses.forEach((response, index) => {\n  try {\n    const url = response.node.parameters.url;\n    const content = response.json;\n    \n    // Store source\n    const source = {\n      companyId: companyData.id,\n      type: 'site_page',\n      url,\n      title: extractTitle(content),\n      transcriptText: content,\n      fetchedAt: new Date().toISOString()\n    };\n    sources.push(source);\n    \n    // Extract moments using LLM (simplified for MVP)\n    const extractedMoments = extractMoments(content, url, companyData.name);\n    moments.push(...extractedMoments);\n    \n  } catch (error) {\n    console.log(`Error processing URL ${index}:`, error.message);\n  }\n});\n\nfunction extractTitle(content) {\n  const titleMatch = content.match(/<title[^>]*>([^<]+)<\\/title>/i);\n  return titleMatch ? titleMatch[1].trim() : 'Untitled';\n}\n\nfunction extractMoments(content, url, companyName) {\n  // Simple moment extraction for MVP\n  // In production, this would call Claude/OpenAI API\n  const moments = [];\n  \n  // Look for growth/hiring signals\n  const hiringKeywords = [\n    'we are hiring', 'we are growing', 'we are expanding',\n    'join our team', 'looking for', 'searching for',\n    'engineering team', 'product team', 'design team'\n  ];\n  \n  const missionKeywords = [\n    'our mission', 'we believe', 'our vision',\n    'we are committed to', 'we are passionate about'\n  ];\n  \n  const metricKeywords = [\n    'customers', 'users', 'revenue', 'growth',\n    'million', 'billion', 'percent', 'increase'\n  ];\n  \n  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);\n  \n  sentences.forEach(sentence => {\n    const cleanSentence = sentence.trim();\n    \n    if (hiringKeywords.some(keyword => cleanSentence.toLowerCase().includes(keyword))) {\n      moments.push({\n        companyId: companyData.id,\n        sourceUrl: url,\n        quote: cleanSentence.substring(0, 200),\n        label: 'hiring',\n        confidence: 0.7,\n        summary: 'Company is actively hiring or expanding'\n      });\n    }\n    \n    if (missionKeywords.some(keyword => cleanSentence.toLowerCase().includes(keyword))) {\n      moments.push({\n        companyId: companyData.id,\n        sourceUrl: url,\n        quote: cleanSentence.substring(0, 200),\n        label: 'mission',\n        confidence: 0.8,\n        summary: 'Company mission or values statement'\n      });\n    }\n    \n    if (metricKeywords.some(keyword => cleanSentence.toLowerCase().includes(keyword))) {\n      moments.push({\n        companyId: companyData.id,\n        sourceUrl: url,\n        quote: cleanSentence.substring(0, 200),\n        label: 'metric',\n        confidence: 0.6,\n        summary: 'Company metric or achievement'\n      });\n    }\n  });\n  \n  return moments.slice(0, 5); // Limit moments per source\n}\n\nreturn [{\n  json: {\n    sources,\n    moments,\n    totalSources: sources.length,\n    totalMoments: moments.length,\n    company: companyData\n  }\n}];"
+      },
+      "name": "Extract Moments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 350]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "sources",
+        "column": "url",
+        "additionalFields": {
+          "data": "={{$json.sources}}",
+          "dataMode": "json"
+        }
+      },
+      "name": "Store Sources",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1560, 250]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "moments",
+        "additionalFields": {
+          "data": "={{$json.moments}}",
+          "dataMode": "json"
+        }
+      },
+      "name": "Store Moments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1560, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare response and trigger contact finding\nconst results = $('Extract Moments').all()[0].json;\nconst workflowData = $('Extract Request Data').all()[0].json;\n\nconst response = {\n  success: true,\n  workflowId: workflowData.workflowId,\n  jobId: workflowData.jobId,\n  researchComplete: true,\n  stats: {\n    sourcesCrawled: results.totalSources,\n    momentsExtracted: results.totalMoments,\n    researchTime: Date.now() - new Date(workflowData.startTime).getTime()\n  },\n  nextStep: 'contact_finding'\n};\n\nreturn [{ json: response }];"
+      },
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 350]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}"
+      },
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 350]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Request Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Request Data": {
+      "main": [
+        [
+          {
+            "node": "Fetch Job Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Company Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Job Details": {
+      "main": [
+        [
+          {
+            "node": "Build Research Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Company Details": {
+      "main": [
+        [
+          {
+            "node": "Build Research Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Research Plan": {
+      "main": [
+        [
+          {
+            "node": "Crawl Company Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl Company Pages": {
+      "main": [
+        [
+          {
+            "node": "Extract Moments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Moments": {
+      "main": [
+        [
+          {
+            "node": "Store Sources",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Store Moments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Sources": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Moments": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "1",
+      "name": "research"
+    },
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "2",
+      "name": "outreach"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
