@@ -63,6 +63,7 @@ services:
   n8n:
     image: n8nio/n8n:latest
     container_name: pathfinder-n8n
+    restart: unless-stopped
     environment:
       N8N_BASIC_AUTH_ACTIVE: true
       N8N_BASIC_AUTH_USER: admin
@@ -83,7 +84,14 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - pathfinder-network
 
