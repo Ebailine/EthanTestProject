@@ -83,6 +83,26 @@ check_port() {
     print_success "Port $port is available for $service"
 }
 
+# Retry npm install with cleanup
+retry_npm_install() {
+    local max_attempts=3
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if npm install; then
+            return 0
+        fi
+
+        print_warning "Attempt $attempt failed, cleaning and retrying..."
+        rm -rf node_modules package-lock.json
+        npm cache clean --force >/dev/null 2>&1
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+
+    return 1
+}
+
 # Main setup function
 main() {
     print_header "🚀 Pathfinder MVP Setup Starting"
