@@ -197,10 +197,9 @@ The application uses PostgreSQL as the primary database. The schema includes:
 
 ### Running Tests
 ```bash
-npm run test              # Run all tests
-npm run test:app         # Frontend tests only
-npm run test:ingestion   # Ingestion tests only
-npm run test:e2e         # End-to-end tests
+./scripts/test.sh        # Comprehensive health check and testing
+npm run test             # Run unit tests (if available)
+npm run typecheck        # TypeScript checking
 ```
 
 ### Code Quality
