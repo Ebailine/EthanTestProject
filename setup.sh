@@ -259,17 +259,17 @@ main() {
 
     # Install root dependencies
     print_info "Installing root dependencies..."
-    if ! npm install; then
-        error_exit "Failed to install root dependencies. Check npm logs for details."
+    if ! retry_npm_install; then
+        error_exit "Failed to install root dependencies after 3 attempts. Check npm logs for details."
     fi
     print_success "Root dependencies installed"
 
     # Install app dependencies
     if [ -d "app" ]; then
-        print_info "Installing app dependencies..."
+        print_info "Installing app dependencies (this may take a few minutes)..."
         cd app
-        if ! npm install; then
-            error_exit "Failed to install app dependencies. Check npm logs for details."
+        if ! retry_npm_install; then
+            error_exit "Failed to install app dependencies after 3 attempts. Check npm logs for details."
         fi
         print_success "App dependencies installed"
         cd ..
@@ -281,10 +281,11 @@ main() {
     if [ -d "ingestion" ]; then
         print_info "Installing ingestion dependencies..."
         cd ingestion
-        if ! npm install; then
-            error_exit "Failed to install ingestion dependencies. Check npm logs for details."
+        if ! retry_npm_install; then
+            print_warning "Failed to install ingestion dependencies. You can install them manually later with: cd ingestion && npm install"
+        else
+            print_success "Ingestion dependencies installed"
         fi
-        print_success "Ingestion dependencies installed"
         cd ..
     fi
 
