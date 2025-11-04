@@ -1,0 +1,42 @@
+{
+  "name": "pathfinder",
+  "version": "0.1.0",
+  "description": "Pathfinder - Internship discovery and outreach platform",
+  "private": true,
+  "workspaces": [
+    "app",
+    "ingestion"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:app\" \"npm run dev:ingestion\"",
+    "dev:app": "cd app && npm run dev",
+    "dev:ingestion": "cd ingestion && npm run dev",
+    "build": "npm run build:app && npm run build:ingestion",
+    "build:app": "cd app && npm run build",
+    "build:ingestion": "cd ingestion && npm run build",
+    "start": "concurrently \"npm run start:app\" \"npm run start:ingestion\"",
+    "start:app": "cd app && npm start",
+    "start:ingestion": "cd ingestion && npm start",
+    "test": "npm run test:app && npm run test:ingestion",
+    "test:app": "cd app && npm test",
+    "test:ingestion": "cd ingestion && npm test",
+    "lint": "npm run lint:app && npm run lint:ingestion",
+    "lint:app": "cd app && npm run lint",
+    "lint:ingestion": "cd ingestion && npm run lint",
+    "typecheck": "npm run typecheck:app && npm run typecheck:ingestion",
+    "typecheck:app": "cd app && npm run typecheck",
+    "typecheck:ingestion": "cd ingestion && npm run typecheck",
+    "db:migrate": "cd app && npm run db:migrate",
+    "db:generate": "cd app && npm run db:generate",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
