@@ -1,0 +1,30 @@
+Given a list of potential contacts {name, title, dept, email_confidence}, choose exactly 5 with this mix:
+- 2 HR/Recruiting (prioritize campus/university roles)
+- 1 head/lead recruiter if present
+- 2 people from the hiring team or adjacent team (else include EA to leader)
+
+Prefer email_confidence ≥ 0.7. Return JSON with reason per selection.
+
+Contacts: {{contacts}}
+
+Output format:
+{
+  "selected_contacts": [
+    {
+      "contact_id": "uuid",
+      "selection_reason": "Brief explanation of why this contact was chosen and their role in outreach",
+      "role_in_outreach": "Primary HR contact" | "Lead recruiter" | "Team contact" | "Hiring manager" | "EA backup"
+    }
+  ],
+  "summary": "Brief overview of the selected contact mix and strategy"
+}
+
+Selection priorities:
+1. Campus/University recruiters (highest priority for internships)
+2. HR generalists with good email confidence
+3. Lead or senior recruiters
+4. Team members or hiring managers
+5. Executive assistants as fallback
+6. Role-based emails (recruiting@, careers@) as last resort
+
+Always return exactly 5 contacts unless fewer than 5 are available.
