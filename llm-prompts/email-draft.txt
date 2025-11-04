@@ -1,0 +1,34 @@
+Draft a concise email from {{student_name}}, a {{major}} at {{school}}, graduating {{grad_term}}.
+They applied to {{job_title}} ({{job_url}}).
+
+Use exactly one specific moment: {{moment.quote}} ({{moment.source_url}} at {{moment.timestamp}}).
+
+Tone: human, curious, respectful. Structure:
+1. Short intro (who you are)
+2. 1-sentence context (why you're reaching out)
+3. The cited moment + your alignment
+4. Clear ask ("could you point me to the right next step or team contact?")
+5. Thanks + signature
+
+No buzzwords. 90-130 words. Output JSON:
+{
+  "subject": "string",
+  "body_text": "string",
+  "sources_cited": ["{{moment.source_url}}"],
+  "angle_tag": "curiosity|mission_fit|project_relevance|specific_question|timeline",
+  "word_count": number
+}
+
+Student context:
+- Resume highlights: {{resume_highlights}}
+- Skills: {{skills}}
+- Projects: {{projects}}
+
+Angle guidance:
+- "curiosity": Ask about a specific aspect mentioned in the moment
+- "mission_fit": Connect your values to the company's mission
+- "project_relevance": Link your experience to the company's work
+- "specific_question": Ask a detailed question about the moment
+- "timeline": Inquire about the timeline or next steps
+
+Make it sound like a real student, not a corporation. Use contractions naturally. Focus on genuine interest and curiosity.
