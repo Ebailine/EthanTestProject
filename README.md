@@ -1,1 +1,266 @@
-# EthanTestProject
+# Pathfinder - Internship Discovery & Outreach Platform
+
+Pathfinder aggregates internship opportunities across the web and helps students make effective, evidence-based outreach to hiring contacts.
+
+## 🎯 Mission
+
+Transform the internship search from sending applications into black holes to making strategic, research-backed outreach that gets responses.
+
+## ✨ Features
+
+### Discovery Module
+- **Aggregated Opportunities**: Pull from 50+ sources including Greenhouse, Lever, and government portals
+- **Smart Filtering**: Filter by major, location, pay, remote work, visa sponsorship, and more
+- **Fresh Data**: Real-time verification and freshness indicators
+- **ATS Integration**: Direct links to application systems
+
+### Outreach Module
+- **Company Research**: Automated research into companies, teams, and recent initiatives
+- **Contact Finding**: 5 verified contacts per job with email validation
+- **Evidence-Based Emails**: 5 personalized emails citing concrete company facts
+- **Approval Workflow**: Review and edit all content before sending from your email
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   n8n Workflows  │    │   External      │
+│   (Next.js)     │◄──►│   (Automation)   │◄──►│   APIs/Services │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   PostgreSQL    │    │   Typesense      │    │   Email Services│
+│   (Database)    │    │   (Search)       │    │   (Gmail/Outlook)│
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- Docker & Docker Compose
+- PostgreSQL 15+
+- Redis 7+
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/your-org/pathfinder.git
+cd pathfinder
+```
+
+2. **Set up environment variables**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+3. **Start services**
+```bash
+docker compose up -d
+```
+
+4. **Install dependencies**
+```bash
+npm install
+```
+
+5. **Set up databases**
+```bash
+npm run db:migrate
+npm run db:generate
+```
+
+6. **Start development servers**
+```bash
+npm run dev
+```
+
+The application will be available at http://localhost:3000
+
+## 📁 Project Structure
+
+```
+pathfinder/
+├── app/                    # Next.js frontend application
+│   ├── src/
+│   │   ├── app/           # Next.js app router pages
+│   │   ├── components/    # React components
+│   │   ├── lib/          # Shared utilities
+│   │   └── types/        # TypeScript definitions
+│   └── prisma/           # Database schema and migrations
+├── ingestion/             # Job data collection service
+│   └── src/
+│       ├── connectors/   # ATS and job board integrations
+│       └── normalizer.ts # Job deduplication and normalization
+├── flows/                # n8n workflow definitions
+├── llm-prompts/          # Reusable LLM prompt templates
+├── docs/                 # Documentation
+└── scripts/              # Utility scripts
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Key environment variables in `.env`:
+
+```env
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/pathfinder
+
+# Authentication
+CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+
+# Email Services
+GMAIL_CLIENT_ID=your_google_client_id
+OUTLOOK_CLIENT_ID=your_microsoft_client_id
+
+# LLM Services
+ANTHROPIC_API_KEY=your_claude_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+# Search
+TYPESENSE_API_KEY=your_typesense_key
+```
+
+### Database Setup
+
+The application uses PostgreSQL as the primary database. The schema includes:
+
+- **companies**: Company information and metadata
+- **jobs**: Internship listings with detailed attributes
+- **sources**: Research content and evidence
+- **moments**: Extracted insights for outreach
+- **contacts**: Verified hiring contacts
+- **users**: Student profiles and preferences
+- **outreach_***: Outreach workflow and tracking
+
+## 🔌 Integrations
+
+### Job Sources
+- **Greenhouse**: ATS job board scraping
+- **Lever**: ATS job board scraping
+- **Government Portals**: USAJOBS, NASA internships, etc.
+- **Company Career Pages**: Direct scraping for large employers
+- **CSV Curation**: Manual high-quality job imports
+
+### Email Providers
+- **Gmail**: OAuth integration for draft creation and sending
+- **Outlook**: Microsoft Graph API integration
+- **SMTP**: For custom domain email accounts
+
+### LLM Services
+- **Claude**: Company research and moment extraction
+- **OpenAI**: Email drafting and personalization
+
+## 📊 Monitoring & Analytics
+
+### Key Metrics
+- **Discovery**: Job freshness, data completeness, source coverage
+- **Outreach**: Contact accuracy, email response rates, meeting bookings
+- **User**: Weekly active users, outreach campaigns per user
+- **Technical**: Workflow success rates, API response times
+
+### Tools
+- **PostHog**: Product analytics and user behavior
+- **Sentry**: Error tracking and performance monitoring
+- **Custom Dashboard**: Real-time metrics and alerting
+
+## 🔒 Security & Privacy
+
+### Data Protection
+- All sensitive data encrypted at rest (AES-256)
+- Resume files stored in encrypted S3-compatible storage
+- Email communication via HTTPS only
+- Database connections via SSL
+
+### Privacy Controls
+- Explicit approval required for all email sending
+- Students review and edit all content before sending
+- Easy opt-out and data deletion options
+- Compliant with GDPR and CCPA
+
+## 🧪 Development
+
+### Running Tests
+```bash
+npm run test              # Run all tests
+npm run test:app         # Frontend tests only
+npm run test:ingestion   # Ingestion tests only
+npm run test:e2e         # End-to-end tests
+```
+
+### Code Quality
+```bash
+npm run lint             # ESLint checking
+npm run typecheck        # TypeScript checking
+npm run format           # Prettier formatting
+```
+
+### Database Operations
+```bash
+npm run db:generate      # Generate Prisma client
+npm run db:migrate       # Run database migrations
+npm run db:studio        # Open Prisma Studio
+npm run db:seed          # Seed development data
+```
+
+## 📈 Roadmap
+
+### Phase 1: MVP (Weeks 1-8)
+- [x] Basic job aggregation from 3-5 sources
+- [x] Search and discovery UI
+- [x] Company research workflow
+- [x] Contact finding and verification
+- [x] Email drafting and approval system
+
+### Phase 2: Enhanced Features (Weeks 9-12)
+- [ ] Podcast/video transcript integration
+- [ ] Advanced contact diversification
+- [ ] Mobile-responsive design
+- [ ] Analytics dashboard
+- [ ] University partnerships
+
+### Phase 3: Scale & Growth
+- [ ] 50+ job source integrations
+- [ ] AI-powered job matching
+- [ ] Resume optimization tools
+- [ ] Interview preparation features
+- [ ] Enterprise university features
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Support
+
+- **Email**: hello@pathfinder.com
+- **Documentation**: https://docs.pathfinder.com
+- **API Docs**: https://developers.pathfinder.com
+- **Community**: https://discord.gg/pathfinder
+
+## 🙏 Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/), [Prisma](https://www.prisma.io/), and [n8n](https://n8n.io/)
+- Icons by [Lucide](https://lucide.dev/)
+- Design inspiration from modern ATS and career platforms
+
+---
+
+**Made with ❤️ for students everywhere**

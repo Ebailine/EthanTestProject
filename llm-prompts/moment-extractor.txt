@@ -1,0 +1,25 @@
+You are extracting verifiable "moments" about {{company}} from the content below.
+Return JSON array. Each item: {
+  "source_url": "...",
+  "type": "site|podcast|video|press|award|blog",
+  "timestamp": "HH:MM:SS or null",
+  "quote": "verbatim ≤ 35 words",
+  "label": "pain|plan|metric|hiring|mission",
+  "why_it_matters": "≤ 20 words",
+  "confidence": 0.0–1.0
+}. Only include claims with a link (and timestamp if audio/video). Be conservative.
+
+Content: {{content}}
+
+Examples of good moments:
+- "We're expanding our engineering team by 30% this year" (plan, 0.9 confidence)
+- "Our customers report a 40% reduction in deployment time" (metric, 0.8 confidence)
+- "We're looking for engineers who care about accessibility" (hiring, 0.7 confidence)
+- "We believe AI should augment human creativity, not replace it" (mission, 0.9 confidence)
+
+Examples of bad moments:
+- "We're a great place to work" (too vague, no confidence)
+- "We offer competitive benefits" (generic, not specific)
+- "Join our innovative team" (marketing fluff, no confidence)
+
+Focus on concrete, verifiable facts that would be compelling in a cold email to a recruiter.
