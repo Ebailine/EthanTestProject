@@ -1,0 +1,252 @@
+{
+  "name": "Job Ingestion Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */4 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://ingestion:3000/connectors/greenhouse",
+        "options": {}
+      },
+      "name": "Greenhouse Connector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://ingestion:3000/connectors/lever",
+        "options": {}
+      },
+      "name": "Lever Connector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://ingestion:3000/connectors/gov-portal",
+        "options": {}
+      },
+      "name": "Government Portal Connector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize and deduplicate jobs\nconst allJobs = [];\n\n// Collect jobs from all sources\nObject.values(items).forEach(sourceItems => {\n  if (Array.isArray(sourceItems.json)) {\n    allJobs.push(...sourceItems.json);\n  } else {\n    allJobs.push(sourceItems.json);\n  }\n});\n\n// Remove duplicates based on title + company + location\nconst uniqueJobs = [];\nconst seen = new Set();\n\nallJobs.forEach(job => {\n  const key = `${job.title}-${job.company}-${job.location}`.toLowerCase();\n  if (!seen.has(key)) {\n    seen.add(key);\n    uniqueJobs.push({\n      ...job,\n      normalized_at: new Date().toISOString()\n    });\n  }\n});\n\nreturn uniqueJobs.map(job => ({ json: job }));"
+      },
+      "name": "Normalize Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "jobs",
+        "column": "source_url",
+        "additionalFields": {
+          "data": "={{$json}}",
+          "dataMode": "json"
+        }
+      },
+      "name": "PostgreSQL - Upsert Jobs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "companies",
+        "column": "domain",
+        "additionalFields": {
+          "data": "={{$json.company}}",
+          "dataMode": "json"
+        }
+      },
+      "name": "PostgreSQL - Upsert Companies",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "url": "http://typesense:8108/collections/jobs/documents/import",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "typesenseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-TYPESENSE-API-KEY",
+              "value": "xyz"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{JSON.stringify([$json])}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Typesense - Index Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate summary statistics\nconst totalJobs = items.length;\nconst newJobs = items.filter(item => item.json.is_new).length;\nconst updatedJobs = totalJobs - newJobs;\n\nconst sources = {};\nitems.forEach(item => {\n  const source = item.json.source_name;\n  sources[source] = (sources[source] || 0) + 1;\n});\n\nconst message = `\n📊 Job Ingestion Complete\n• Total processed: ${totalJobs}\n• New jobs: ${newJobs}\n• Updated jobs: ${updatedJobs}\n\nBy source:\n${Object.entries(sources).map(([source, count]) => `• ${source}: ${count}`).join('\\n')}\n\nProcessing time: ${new Date().toLocaleString()}\n`;\n\nreturn [{ json: { message, stats: { totalJobs, newJobs, updatedJobs, sources } } }];"
+      },
+      "name": "Generate Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#pathfinder-alerts",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Greenhouse Connector",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lever Connector",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Government Portal Connector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Greenhouse Connector": {
+      "main": [
+        [
+          {
+            "node": "Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lever Connector": {
+      "main": [
+        [
+          {
+            "node": "Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Government Portal Connector": {
+      "main": [
+        [
+          {
+            "node": "Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Jobs": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - Upsert Companies",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PostgreSQL - Upsert Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - Upsert Jobs": {
+      "main": [
+        [
+          {
+            "node": "Typesense - Index Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Typesense - Index Jobs": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Summary": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
