@@ -162,11 +162,33 @@ fi
 echo ""
 echo "🗄️ Testing database connectivity..."
 
-cd app
-if npm run db:generate 2>/dev/null; then
+# Test basic database connection
+if docker-compose exec -T postgres pg_isready -U pathfinder -d pathfinder >/dev/null 2>&1; then
     print_status 0 "Database connection is working"
 else
-    print_status 1 "Database connection failed"
+    print_status 1 "Database connection failed - run './setup.sh' to fix"
+fi
+
+# Test database permissions
+if docker-compose exec -T postgres psql -U pathfinder -d pathfinder -c "SELECT 1;" >/dev/null 2>&1; then
+    print_status 0 "Database permissions are correct"
+else
+    print_status 1 "Database permissions issue - run './setup.sh' to fix"
+fi
+
+# Test for sample data
+JOB_COUNT=$(docker-compose exec -T postgres psql -U pathfinder -d pathfinder -c "SELECT COUNT(*) FROM \"Job\";" -t 2>/dev/null | tr -d ' ' || echo "0")
+if [ "$JOB_COUNT" -gt 0 ]; then
+    print_status 0 "Sample data found: $JOB_COUNT jobs in database"
+else
+    print_status 1 "No sample data found - run 'npm run db:seed' in app directory"
+fi
+
+cd app
+if npm run db:generate >/dev/null 2>&1; then
+    print_status 0 "Prisma client generation successful"
+else
+    print_status 1 "Prisma client generation failed"
 fi
 
 cd ..
