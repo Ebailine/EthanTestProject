@@ -83,12 +83,71 @@ check_port() {
     print_success "Port $port is available for $service"
 }
 
+# Retry npm install with cleanup
+retry_npm_install() {
+    local max_attempts=3
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if npm install; then
+            return 0
+        fi
+
+        print_warning "Attempt $attempt failed, cleaning and retrying..."
+        rm -rf node_modules package-lock.json
+        npm cache clean --force >/dev/null 2>&1
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+
+    return 1
+}
+
 # Main setup function
 main() {
     print_header "🚀 Pathfinder MVP Setup Starting"
 
     # Record start time
     start_time=$(date +%s)
+
+    # 0. Pre-flight checks
+    print_header "🔍 Running Pre-flight Checks"
+
+    # Check available disk space
+    if command_exists df; then
+        AVAILABLE_SPACE=$(df -BG . | awk 'NR==2 {print $4}' | sed 's/G//')
+        if [ "$AVAILABLE_SPACE" -lt 5 ] 2>/dev/null; then
+            print_warning "Less than 5GB disk space available. Setup may fail."
+        else
+            print_success "Sufficient disk space available (${AVAILABLE_SPACE}GB)"
+        fi
+    fi
+
+    # Check available RAM (if possible)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        AVAILABLE_RAM=$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1073741824)}')
+        if [ ! -z "$AVAILABLE_RAM" ] && [ "$AVAILABLE_RAM" -lt 4 ]; then
+            print_warning "Less than 4GB RAM available. Docker services may be slow."
+        elif [ ! -z "$AVAILABLE_RAM" ]; then
+            print_success "Sufficient RAM available (${AVAILABLE_RAM}GB)"
+        fi
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if command_exists free; then
+            AVAILABLE_RAM=$(free -g | awk 'NR==2 {print $7}')
+            if [ "$AVAILABLE_RAM" -lt 4 ] 2>/dev/null; then
+                print_warning "Less than 4GB RAM available. Docker services may be slow."
+            else
+                print_success "Sufficient RAM available"
+            fi
+        fi
+    fi
+
+    # Check internet connectivity
+    if ping -c 1 google.com >/dev/null 2>&1 || ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        print_success "Internet connection available"
+    else
+        print_warning "No internet connection detected. This may cause issues downloading dependencies."
+    fi
 
     # 1. Check prerequisites
     print_header "📋 Checking Prerequisites"
@@ -200,17 +259,17 @@ main() {
 
     # Install root dependencies
     print_info "Installing root dependencies..."
-    if ! npm install; then
-        error_exit "Failed to install root dependencies. Check npm logs for details."
+    if ! retry_npm_install; then
+        error_exit "Failed to install root dependencies after 3 attempts. Check npm logs for details."
     fi
     print_success "Root dependencies installed"
 
     # Install app dependencies
     if [ -d "app" ]; then
-        print_info "Installing app dependencies..."
+        print_info "Installing app dependencies (this may take a few minutes)..."
         cd app
-        if ! npm install; then
-            error_exit "Failed to install app dependencies. Check npm logs for details."
+        if ! retry_npm_install; then
+            error_exit "Failed to install app dependencies after 3 attempts. Check npm logs for details."
         fi
         print_success "App dependencies installed"
         cd ..
@@ -222,10 +281,11 @@ main() {
     if [ -d "ingestion" ]; then
         print_info "Installing ingestion dependencies..."
         cd ingestion
-        if ! npm install; then
-            error_exit "Failed to install ingestion dependencies. Check npm logs for details."
+        if ! retry_npm_install; then
+            print_warning "Failed to install ingestion dependencies. You can install them manually later with: cd ingestion && npm install"
+        else
+            print_success "Ingestion dependencies installed"
         fi
-        print_success "Ingestion dependencies installed"
         cd ..
     fi
 

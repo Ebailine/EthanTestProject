@@ -89,6 +89,57 @@ The application will be available at:
 
 See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for solutions to common problems.
 
+---
+
+## 🔧 Common Issues & Solutions
+
+### Build Error: Module not found 'lucide-react'
+**Solution**: This is already fixed in the repository. If you still see it:
+```bash
+cd app && npm install lucide-react && cd ..
+```
+
+### Build Error: Cannot find module '@tailwindcss/typography'
+**Solution**: This is already fixed in the repository. If you still see it:
+```bash
+cd app && npm install @tailwindcss/forms @tailwindcss/typography && cd ..
+```
+
+### Database Connection Failed
+**Solution**: Ensure Docker is running and services are healthy:
+```bash
+docker-compose ps  # Check status
+docker-compose logs postgres  # Check logs
+docker-compose restart postgres  # Restart if needed
+```
+
+### Port Already in Use
+**Solution**: Check what's using the port and stop it:
+```bash
+lsof -i :3000  # Check port 3000
+kill -9 <PID>  # Kill the process
+# Or use a different port: PORT=3001 npm run dev
+```
+
+### Permission Denied (Database)
+**Solution**: Reset the database completely:
+```bash
+./cleanup.sh
+./setup.sh
+```
+
+### npm install fails with peer dependency errors
+**Solution**: The package.json has been updated to resolve conflicts:
+```bash
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+```
+
+For more issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) and [TESTING_GUIDE.md](TESTING_GUIDE.md).
+
+---
+
 ## 📁 Project Structure
 
 ```
