@@ -35,19 +35,19 @@ docker-compose ps > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     print_status 0 "Docker is running"
 
-    # Check individual services
-    POSTGRES_RUNNING=$(docker-compose ps -q postgres)
-    REDIS_RUNNING=$(docker-compose ps -q redis)
-    TYPESENSE_RUNNING=$(docker-compose ps -q typesense)
-    N8N_RUNNING=$(docker-compose ps -q n8n)
+    # Check individual services with health status
+    POSTGRES_STATUS=$(docker-compose ps postgres | grep "Up\|healthy" || echo "")
+    REDIS_STATUS=$(docker-compose ps redis | grep "Up\|healthy" || echo "")
+    TYPESENSE_STATUS=$(docker-compose ps typesense | grep "Up\|healthy" || echo "")
+    N8N_STATUS=$(docker-compose ps n8n | grep "Up\|healthy" || echo "")
 
-    [ ! -z "$POSTGRES_RUNNING" ] && print_status 0 "PostgreSQL is running" || print_status 1 "PostgreSQL is not running"
-    [ ! -z "$REDIS_RUNNING" ] && print_status 0 "Redis is running" || print_status 1 "Redis is not running"
-    [ ! -z "$TYPESENSE_RUNNING" ] && print_status 0 "Typesense is running" || print_status 1 "Typesense is not running"
-    [ ! -z "$N8N_RUNNING" ] && print_status 0 "n8n is running" || print_status 1 "n8n is not running"
+    [ ! -z "$POSTGRES_STATUS" ] && print_status 0 "PostgreSQL is running and healthy" || print_status 1 "PostgreSQL is not running or unhealthy"
+    [ ! -z "$REDIS_STATUS" ] && print_status 0 "Redis is running and healthy" || print_status 1 "Redis is not running or unhealthy"
+    [ ! -z "$TYPESENSE_STATUS" ] && print_status 0 "Typesense is running and healthy" || print_status 1 "Typesense is not running or unhealthy"
+    [ ! -z "$N8N_STATUS" ] && print_status 0 "n8n is running and healthy" || print_status 1 "n8n is not running or unhealthy"
 else
     print_status 1 "Docker services are not running"
-    echo "Run 'docker-compose up -d' to start services"
+    echo "Run './setup.sh' to set up and start services"
 fi
 
 # Check if Node.js services are accessible
