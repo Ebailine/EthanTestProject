@@ -198,9 +198,19 @@ echo ""
 echo "🔧 Checking environment configuration..."
 
 if [ -f ".env" ]; then
-    print_status 0 ".env file exists"
+    print_status 0 ".env file exists in root directory"
+else
+    print_status 1 ".env file does not exist in root directory - run './setup.sh'"
+fi
 
-    # Check for required variables
+if [ -f "app/.env" ]; then
+    print_status 0 ".env file exists in app directory"
+else
+    print_status 1 ".env file does not exist in app directory - run './setup.sh'"
+fi
+
+# Check for required variables in both .env files
+if [ -f ".env" ]; then
     REQUIRED_VARS=("DATABASE_URL" "TYPESENSE_API_KEY")
     MISSING_VARS=()
 
@@ -215,8 +225,6 @@ if [ -f ".env" ]; then
     else
         print_warning "Missing environment variables: ${MISSING_VARS[*]}"
     fi
-else
-    print_status 1 ".env file does not exist"
 fi
 
 # Check file structure
