@@ -43,6 +43,7 @@ services:
   typesense:
     image: typesense/typesense:0.24.1
     container_name: pathfinder-typesense
+    restart: unless-stopped
     environment:
       TYPESENSE_API_KEY: xyz
       TYPESENSE_DATA_DIR: /data
@@ -50,6 +51,12 @@ services:
       - "8108:8108"
     volumes:
       - typesense_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8108/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - pathfinder-network
 
