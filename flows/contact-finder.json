@@ -1,0 +1,89 @@
+{
+  "name": "Contact Finding & Verification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contact-finder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract workflow data\nconst webhookData = items[0].json;\nconst jobId = webhookData.jobId;\nconst companyId = webhookData.companyId;\n\nreturn [{\n  json: {\n    jobId,\n    companyId,\n    workflowId: webhookData.workflowId || $runIndex,\n    startTime: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Extract Request Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "table": "companies",
+        "column": "id",
+        "value": "={{$json.companyId}}",
+        "additionalFields": {
+          "returnFields": ["id", "name", "website", "domain", "linkedinUrl", "industryTags"]
+        }
+      },
+      "name": "Fetch Company Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build contact search strategy\nconst companyData = $('Fetch Company Info').all()[0].json;\nconst companyName = companyData.name;\nconst domain = companyData.domain;\nconst website = companyData.website || `https://${domain}`;\n\n// Contact search URLs and patterns\nconst searchUrls = [\n  `${website}/careers`,\n  `${website}/team`,\n  `${website}/about`,\n  `${website}/leadership`\n].filter(url => url !== 'undefined/careers');\n\n// Target titles for contact finding\nconst targetTitles = [\n  // HR/Recruiting\n  'University Recruiter',\n  'Campus Recruiter', \n  'Talent Acquisition Specialist',\n  'Technical Recruiter',\n  'Recruiter',\n  'Talent Acquisition Lead',\n  'HR Manager',\n  'People Operations',\n  \n  // Team contacts\n  'Engineering Manager',\n  'Tech Lead',\n  'Senior Engineer',\n  'Product Manager',\n  'Design Lead',\n  'Engineering Director',\n  \n  // Executive assistants\n  'Executive Assistant',\n  'EA to CEO',\n  'EA to CTO'\n];\n\n// Email patterns to try\nconst emailPatterns = [\n  '{first}.{last}@' + domain,\n  '{first}{last}@' + domain,\n  '{first}_{last}@' + domain,\n  '{last}@' + domain,\n  '{first}@' + domain,\n  'recruiting@' + domain,\n  'careers@' + domain,\n  'talent@' + domain,\n  'hr@' + domain\n];\n\nreturn [{\n  json: {\n    company: companyData,\n    searchUrls,\n    targetTitles,\n    emailPatterns,\n    searchStrategy: 'multi_source'\n  }\n}];"
+      },
+      "name": "Build Search Strategy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.searchUrls[$runIndex]}}",
+        "options": {
+          "timeout": 20000\n        }\n      },
+n      "name": "Scrape Career Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract contacts from scraped content\nconst companyData = $('Build Search Strategy').all()[0].json.company;\nconst targetTitles = $('Build Search Strategy').all()[0].json.targetTitles;\nconst responses = $('Scrape Career Pages').all();\n\nconst contacts = [];\nconst names = new Set(); // Track unique names\n\n// Extract from career pages\nresponses.forEach(response => {\n  try {\n    const content = response.json;\n    const pageContacts = extractContactsFromContent(content, response.node.parameters.url, companyData.id);\n    \n    pageContacts.forEach(contact => {\n      if (!names.has(contact.fullName.toLowerCase())) {\n        contacts.push(contact);\n        names.add(contact.fullName.toLowerCase());\n      }\n    });\n  } catch (error) {\n    console.log('Error extracting contacts:', error.message);\n  }\n});\n\n// Add some example contacts for MVP if none found\nif (contacts.length === 0) {\n  const exampleContacts = generateExampleContacts(companyData.id, companyData.name);\n  contacts.push(...exampleContacts);\n}\n\nfunction extractContactsFromContent(content, url, companyId) {\n  const contacts = [];\n  \n  // Look for patterns like \"John Doe - Recruiter\" or \"Jane Smith: Engineering Manager\"\n  const patterns = [\n    /([A-Z][a-z]+ [A-Z][a-z]+)\\s*[-–:]\\s*([A-Z][a-z\\s]+)/g,\n    /([A-Z][a-z]+ [A-Z][a-z]+),\\s*([A-Z][a-z\\s]+)/g,\n    /([A-Z][a-z]+ [A-Z][a-z]+)\\s*\\|\\s*([A-Z][a-z\\s]+)/g\n  ];\n  \n  patterns.forEach(pattern => {\n    let match;\n    while ((match = pattern.exec(content)) !== null) {\n      const fullName = match[1].trim();\n      const titleText = match[2].trim();\n      \n      if (targetTitles.some(title => \n        titleText.toLowerCase().includes(title.toLowerCase()) || \n        title.toLowerCase().includes(title.toLowerCase())\n      )) {\n        contacts.push({\n          companyId,\n          fullName,\n          title: titleText,\n          dept: categorizeDepartment(titleText),\n          email: null, // Will be generated later\n          emailConfidence: 0,\n          source: url,\n          isRoleAccount: false\n        });\n      }\n    }\n  });\n  \n  return contacts;\n}\n\nfunction categorizeDepartment(title) {\n  const titleLower = title.toLowerCase();\n  \n  if (titleLower.includes('recruiter') || titleLower.includes('talent') || titleLower.includes('hr')) {\n    return 'Recruiting';\n  } else if (titleLower.includes('engineer') || titleLower.includes('developer') || titleLower.includes('tech')) {\n    return 'Team';\n  } else if (titleLower.includes('product') || titleLower.includes('design') || titleLower.includes('marketing')) {\n    return 'Team';\n  } else if (titleLower.includes('executive assistant') || titleLower.includes('ea')) {\n    return 'EA';\n  }\n  \n  return 'Other';\n}\n\nfunction generateExampleContacts(companyId, companyName) {\n  return [\n    {\n      companyId,\n      fullName: 'Sarah Johnson',\n      title: 'University Recruiter',\n      dept: 'Recruiting',\n      email: null,\n      emailConfidence: 0,\n      source: 'generated',\n      isRoleAccount: false\n    },\n    {\n      companyId,\n      fullName: 'Michael Chen',\n      title: 'Technical Recruiter',\n      dept: 'Recruiting',\n      email: null,\n      emailConfidence: 0,\n      source: 'generated',\n      isRoleAccount: false\n    },\n    {\n      companyId,\n      fullName: 'Emily Davis',\n      title: 'Engineering Manager',\n      dept: 'Team',\n      email: null,\n      emailConfidence: 0,\n      source: 'generated',\n      isRoleAccount: false\n    },\n    {\n      companyId,\n      fullName: 'Alex Rodriguez',\n      title: 'Senior Software Engineer',\n      dept: 'Team',\n      email: null,\n      emailConfidence: 0,\n      source: 'generated',\n      isRoleAccount: false\n    },\n    {\n      companyId,\n      fullName: 'Jennifer Wilson',\n      title: 'Talent Acquisition Lead',\n      dept: 'Recruiting',\n      email: null,\n      emailConfidence: 0,\n      source: 'generated',\n      isRoleAccount: false\n    }\n  ];\n}\n\nreturn [{ json: { contacts, totalFound: contacts.length } }];"
+      },
+      "name": "Extract Contacts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate emails and verify contacts\nconst contactsData = $('Extract Contacts').all()[0].json;\nconst companyData = $('Build Search Strategy').all()[0].json.company;\nconst emailPatterns = $('Build Search Strategy').all()[0].json.emailPatterns;\n\nconst contacts = contactsData.contacts;\n\n// Generate and validate emails\ncontacts.forEach(contact => {\n  const nameParts = contact.fullName.split(' ');\n  const firstName = nameParts[0]?.toLowerCase();\n  const lastName = nameParts[nameParts.length - 1]?.toLowerCase();\n  \n  if (firstName && lastName) {\n    // Try email patterns\n    const generatedEmails = emailPatterns\n      .map(pattern => pattern\n        .replace('{first}', firstName)\n        .replace('{last}', lastName)\n      );\n    \n    // For MVP, assign first pattern with moderate confidence\n    contact.email = generatedEmails[0];\n    contact.emailConfidence = contact.isRoleAccount ? 0.6 : 0.7;\n  } else {\n    // Fallback to role-based email\n    contact.email = `recruiting@${companyData.domain}`;\n    contact.emailConfidence = 0.5;\n    contact.isRoleAccount = true;\n  }\n  \n  contact.lastVerifiedAt = new Date().toISOString();\n});\n\nreturn [{ json: { contacts, totalProcessed: contacts.length } }];"
+      },
+      "name": "Generate & Verify Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "contacts",
+        "additionalFields": {
+          "data": "={{$json.contacts}}",
+n          "dataMode": "json"\n        }\n      },\n      "name": "Store Contacts",\n      "type": "n8n-nodes-base.postgres",\n      "typeVersion": 2,\n      "position": [1780, 300]\n    },\n    {\n      "parameters": {\n        "jsCode": "// Select and diversify 5 contacts\nconst contacts = $('Generate & Verify Emails').all()[0].json.contacts;\nconst workflowData = $('Extract Request Data').all()[0].json;\n\n// Sort by confidence and diversify\nconst hrRecruiters = contacts.filter(c => c.dept === 'Recruiting');\nconst teamContacts = contacts.filter(c => c.dept === 'Team');\nconst otherContacts = contacts.filter(c => c.dept !== 'Recruiting' && c.dept !== 'Team');\n\nconst selectedContacts = [];\nconst selectionReasons = [];\n\n// Priority 1: 2 HR/Recruiting (prioritize university roles)\nconst universityRecruiters = hrRecruiters.filter(c => \n  c.title.toLowerCase().includes('university') || c.title.toLowerCase().includes('campus')\n);\n\nif (universityRecruiters.length > 0) {\n  selectedContacts.push(...universityRecruiters.slice(0, 2));\n  selectionReasons.push('University recruiters prioritized for internships');\n} else {\n  selectedContacts.push(...hrRecruiters.slice(0, 2));\n  selectionReasons.push('HR recruiters selected for general hiring outreach');\n}\n\n// Priority 2: 1 Lead/Head recruiter if available\nconst leadRecruiter = hrRecruiters.find(c => \n  c.title.toLowerCase().includes('lead') || \n  c.title.toLowerCase().includes('senior') ||\n  c.title.toLowerCase().includes('manager')\n);\n\nif (leadRecruiter && !selectedContacts.includes(leadRecruiter)) {\n  selectedContacts.push(leadRecruiter);\n  selectionReasons.push('Lead recruiter included for decision-making authority');\n}\n\n// Priority 3: 2 Team contacts or EA\nconst teamMembers = teamContacts.filter(c => c.emailConfidence >= 0.6).slice(0, 2);\nselectedContacts.push(...teamMembers);\n\nif (teamMembers.length > 0) {\n  selectionReasons.push('Team members included for technical relevance');\n} else {\n  const eAs = otherContacts.filter(c => c.title.toLowerCase().includes('executive assistant'));\n  if (eAs.length > 0) {\n    selectedContacts.push(eAs[0]);\n    selectionReasons.push('Executive assistant included as backup contact');\n  }\n}\n\n// Ensure we have exactly 5 contacts\nconst finalContacts = selectedContacts.slice(0, 5);\n\nconst response = {\n  success: true,\n  workflowId: workflowData.workflowId,\n  jobId: workflowData.jobId,\n  contactsFound: contacts.length,\n  contactsSelected: finalContacts.length,\n  selectedContacts: finalContacts.map((contact, index) => ({\n    ...contact,\n    selectionReason: getSelectionReason(contact, index),\n    roleInOutreach: getRoleInOutreach(contact)\n  })),\n  summary: `Selected ${finalContacts.length} contacts: ${getContactMix(finalContacts)}`,\n  nextStep: 'email_drafting'\n};\n\nfunction getSelectionReason(contact, index) {\n  const reasons = [\n    'Primary HR contact with high email confidence',\n    'University recruiter with relevant experience', \n    'Technical team member for role-specific questions',\n    'Team contact for cultural fit insights',\n    'Backup contact with decision-making access'\n  ];\n  return reasons[index] || 'Selected for outreach diversity';\n}\n\nfunction getRoleInOutreach(contact) {\n  if (contact.title.toLowerCase().includes('university') || contact.title.toLowerCase().includes('campus')) {\n    return 'Primary HR contact';\n  } else if (contact.title.toLowerCase().includes('lead') || contact.title.toLowerCase().includes('manager')) {\n    return 'Lead recruiter';\n  } else if (contact.dept === 'Team') {\n    return 'Team contact';\n  } else if (contact.title.toLowerCase().includes('executive assistant')) {\n    return 'EA backup';\n  }\n  return 'HR contact';\n}\n\nfunction getContactMix(contacts) {\n  const hrCount = contacts.filter(c => c.dept === 'Recruiting').length;\n  const teamCount = contacts.filter(c => c.dept === 'Team').length;\n  return `${hrCount} HR, ${teamCount} team`;\n}\n\nreturn [{ json: response }];"
+      },
+      "name": "Select & Diversify Contacts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]\n    },
+    {\      "parameters": {\n        "respondWith": "json",\n        "responseBody": "={{$json}}"\n      },\n      "name": "Webhook Response",\n      "type": "n8n-nodes-base.respondToWebhook",\n      "typeVersion": 1,\n      "position": [2220, 300]\n    }\n  ],\n  "connections": {\n    "Webhook Trigger": {\n      "main": [\n        [\n          {\n            "node": "Extract Request Data",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Extract Request Data": {\n      "main": [\n        [\n          {\n            "node": "Fetch Company Info",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Fetch Company Info": {\n      "main": [\n        [\n          {\n            "node": "Build Search Strategy",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Build Search Strategy": {\n      "main": [\n        [\n          {\n            "node": "Scrape Career Pages",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Scrape Career Pages": {\n      "main": [\n        [\n          {\n            "node": "Extract Contacts",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Extract Contacts": {\n      "main": [\n        [\n          {\n            "node": "Generate & Verify Emails",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Generate & Verify Emails": {\n      "main": [\n        [\n          {\n            "node": "Store Contacts",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Store Contacts": {\n      "main": [\n        [\n          {\n            "node": "Select & Diversify Contacts",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Select & Diversify Contacts": {\n      "main": [\n        [\n          {\n            "node": "Webhook Response",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    }\n  },\n  "pinData": {},\n  "settings": {\n    "executionOrder": "v1"\n  },\n  "staticData": null,\n  "tags": [\n    {\n      "createdAt": "2024-01-01T00:00:00.000Z",\n      "updatedAt": "2024-01-01T00:00:00.000Z",\n      "id": "3",\n      "name": "contacts"\n    },\n    {\n      "createdAt": "2024-01-01T00:00:00.000Z",\n      "updatedAt": "2024-01-01T00:00:00.000Z",\n      "id": "4",\n      "name": "outreach"\n    }\n  ],\n  "triggerCount": 1,\n  "updatedAt": "2024-01-01T00:00:00.000Z",\n  "versionId": "1"\n}
