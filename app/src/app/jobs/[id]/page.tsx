@@ -1,3 +1,6 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { JobDetailModal } from '@/components/jobs/JobDetailModal'
@@ -8,32 +11,19 @@ interface PageProps {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  try {
-    // This is a basic implementation - in production you'd fetch the job data
-    return {
-      title: 'Internship Details | Pathfinder',
-      description: 'View detailed information about this internship opportunity and launch personalized outreach campaigns.',
-    }
-  } catch (error) {
-    return {
-      title: 'Job Details | Pathfinder',
-      description: 'Internship details and outreach opportunities.',
-    }
-  }
-}
-
 export default function JobDetailPage({ params }: PageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Open modal when page loads
-  React.useEffect(() => {
+  useEffect(() => {
     setIsModalOpen(true)
   }, [])
 
   const handleLaunchOutreach = (jobId: string) => {
     // Redirect to outreach creation page
-    window.location.href = `/outreach/new?jobId=${jobId}`
+    if (typeof window !== 'undefined') {
+      window.location.href = `/outreach/new?jobId=${jobId}`
+    }
   }
 
   return (
@@ -56,16 +46,12 @@ export default function JobDetailPage({ params }: PageProps) {
         onClose={() => {
           setIsModalOpen(false)
           // Optionally redirect back to jobs list
-          window.location.href = '/jobs'
+          if (typeof window !== 'undefined') {
+            window.location.href = '/jobs'
+          }
         }}
         onLaunchOutreach={handleLaunchOutreach}
       />
     </>
   )
-}
-
-export async function generateStaticParams({ params }: PageProps) {
-  return {
-    id: params.id,
-  }
 }

@@ -70,6 +70,21 @@ web_modules/
 .env.*
 !.env.example
 
+# Production environment files
+.env.production
+app/.env.production
+
+# Vercel
+.vercel
+
+# Build outputs
+app/.next/
+app/out/
+
+# Prisma
+app/prisma/*.db
+app/prisma/*.db-journal
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

@@ -1,0 +1,13 @@
+{
+  "buildCommand": "cd app && npm run build",
+  "devCommand": "cd app && npm run dev",
+  "installCommand": "npm install && cd app && npm install",
+  "framework": null,
+  "outputDirectory": "app/.next",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/app/$1"
+    }
+  ]
+}
