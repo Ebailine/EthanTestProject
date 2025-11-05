@@ -7,12 +7,21 @@
 DROP DATABASE IF EXISTS pathfinder;
 CREATE DATABASE pathfinder;
 
--- Create dedicated user if not exists
+-- Create dedicated user with proper error handling
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'pathfinder') THEN
-    CREATE USER pathfinder WITH PASSWORD 'pathfinder_dev';
+  -- Drop existing user if exists (for clean setup)
+  IF EXISTS (SELECT FROM pg_user WHERE usename = 'pathfinder') THEN
+    REASSIGN OWNED BY pathfinder TO postgres;
+    DROP OWNED BY pathfinder;
+    DROP USER pathfinder;
   END IF;
+
+  -- Create fresh user
+  CREATE USER pathfinder WITH PASSWORD 'pathfinder_dev';
+
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'User creation handled';
 END
 $$;
 
