@@ -30,7 +30,13 @@
     "db:generate": "cd app && npm run db:generate",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "db:seed": "cd app && npm run db:seed",
+    "db:studio": "cd app && npm run db:studio",
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "setup": "./setup.sh",
+    "cleanup": "./cleanup.sh",
+    "health": "./scripts/health-check.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

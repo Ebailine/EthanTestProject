@@ -199,37 +199,130 @@ curl -X POST http://localhost:3000/api/jobs/search \
 
 ## Common Issues & Solutions
 
-### Port Conflicts
+### Port Already in Use
+If you see "Port already in use" or "EADDRINUSE" errors:
+
 ```bash
-# If ports are in use, check what's running:
+# Find process using port 3000
+lsof -i :3000
+
+# Kill process
+kill -9 <PID>
+
+# Or use a different port
+PORT=3001 npm run dev
+```
+
+**Check all ports:**
+```bash
 lsof -i :3000  # Frontend
 lsof -i :3001  # Ingestion API
 lsof -i :5432  # PostgreSQL
 lsof -i :6379  # Redis
 lsof -i :8108  # Typesense
 lsof -i :5678  # n8n
-
-# Kill processes if needed
-kill -9 <PID>
 ```
 
-### Database Issues
+### Docker Won't Start
+If Docker services fail to start or health checks fail:
+
 ```bash
-# Reset database if needed:
-docker compose down
+# Reset Docker completely
+docker system prune -a
+docker-compose down -v
+docker-compose up -d
+
+# Check service logs
+docker-compose logs postgres
+docker-compose logs typesense
+docker-compose logs n8n
+
+# Verify Docker is running
+docker ps
+```
+
+### Database Connection Failed
+If you see "Database connection failed" or "Can't reach database server":
+
+```bash
+# Check if postgres is running
+docker-compose ps postgres
+
+# Check logs for errors
+docker-compose logs postgres
+
+# Restart postgres service
+docker-compose restart postgres
+
+# If still failing, reset database:
+docker-compose down
 docker volume rm pathfinder_postgres_data
-docker compose up -d
-npm run db:migrate
+docker-compose up -d postgres
+cd app && npm run db:migrate && cd ..
 ```
 
-### Environment Issues
+### Permission Denied (Database)
+If you see "permission denied for database" errors:
+
 ```bash
-# Check environment variables:
+# Complete database reset
+docker-compose down
+docker volume rm pathfinder_postgres_data
+docker-compose up -d postgres
+
+# Wait for postgres to be healthy
+docker-compose ps
+
+# Re-run migrations
+cd app && npm run db:migrate && cd ..
+```
+
+### npm install fails with peer dependency errors
+If npm install fails with dependency conflicts:
+
+```bash
+# Clear npm cache and reinstall
+rm -rf node_modules package-lock.json
+rm -rf app/node_modules app/package-lock.json
+rm -rf ingestion/node_modules ingestion/package-lock.json
+npm cache clean --force
+npm install
+
+# If still failing, use --legacy-peer-deps
+npm install --legacy-peer-deps
+```
+
+### Build Error: Module not found
+If you see "Module not found: Can't resolve 'lucide-react'" or similar:
+
+```bash
+# Install missing dependencies
+cd app && npm install lucide-react @tailwindcss/forms @tailwindcss/typography && cd ..
+```
+
+### Environment Variables Not Loading
+If environment variables aren't working:
+
+```bash
+# Verify .env file exists
+ls -la .env
+
+# Check format (no quotes, no spaces around =)
 cat .env
 
-# Restart services after changes:
-docker compose restart
+# Restart all services
+docker-compose restart
 npm run dev
+```
+
+### Prisma Client Errors
+If you see "Prisma Client is not generated" or schema errors:
+
+```bash
+cd app
+npm run db:generate
+npm run db:migrate
+cd ..
 ```
 
 ## Testing Checklist

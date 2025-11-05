@@ -5,15 +5,23 @@ export class TypesenseService {
   private client: TypesenseClient
 
   constructor() {
+    const apiKey = process.env.TYPESENSE_API_KEY || 'xyz'
+    const host = process.env.TYPESENSE_HOST || 'localhost'
+    const port = parseInt(process.env.TYPESENSE_PORT || '8108')
+
+    if (!apiKey || apiKey === 'xyz') {
+      console.warn('Typesense API key not configured. Search functionality will be limited.')
+    }
+
     this.client = new TypesenseClient({
       nodes: [
         {
-          host: process.env.TYPESENSE_HOST || 'localhost',
-          port: parseInt(process.env.TYPESENSE_PORT || '8108'),
+          host,
+          port,
           protocol: 'http'
         }
       ],
-      apiKey: process.env.TYPESENSE_API_KEY || 'xyz',
+      apiKey,
       connectionTimeoutSeconds: 10
     })
   }
@@ -48,7 +56,9 @@ export class TypesenseService {
         }
 
         await this.client.collections().create(schema)
-        console.log('Typesense collection created successfully')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Typesense collection created successfully')
+        }
       }
 
       return true

@@ -7,6 +7,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { query, filters }: { query?: string; filters?: SearchFilters } = body
 
+    // Validate input
+    if (query && typeof query !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid query parameter' },
+        { status: 400 }
+      )
+    }
+
+    if (filters && typeof filters !== 'object') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid filters parameter' },
+        { status: 400 }
+      )
+    }
+
     // Build the search query
     const where: any = {
       status: 'active',

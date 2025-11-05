@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   SignedIn,
   SignedOut,
@@ -15,6 +15,28 @@ import { Menu, X, Search, Briefcase, User } from 'lucide-react'
 export function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Add error boundary
+  useEffect(() => {
+    const handleError = (e: ErrorEvent) => {
+      console.error('Navigation error:', e.error)
+      setError('Navigation error occurred')
+    }
+
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
+  if (error) {
+    return (
+      <nav className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-6 py-4">
+          <p className="text-red-600">Navigation error. Please refresh.</p>
+        </div>
+      </nav>
+    )
+  }
 
   const navigation = [
     { name: 'Find Internships', href: '/jobs', icon: Search },

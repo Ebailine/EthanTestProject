@@ -345,32 +345,47 @@ async function seed() {
     const createdCompanies = []
 
     for (const companyData of companies) {
-      const company = await prisma.company.create({
-        data: {
+      const company = await prisma.company.upsert({
+        where: {
+          domain: companyData.domain || `${companyData.name.toLowerCase().replace(/\s+/g, '')}.com`
+        },
+        update: {
+          ...companyData,
+          updatedAt: new Date()
+        },
+        create: {
           ...companyData,
           createdAt: new Date(),
           updatedAt: new Date()
-        },
-        skipDuplicates: true
+        }
       })
       createdCompanies.push(company)
     }
 
-    console.log(`✅ Created ${createdCompanies.length} companies`)
+    console.log(`✅ Created/updated ${createdCompanies.length} companies`)
 
     // 2. Create jobs
     console.log('💼 Creating jobs...')
     const createdJobs = []
 
-    for (const jobData of jobs) {
-      const company = createdCompanies[Math.floor(Math.random() * createdCompanies.length)]
+    // Assign jobs to specific companies by index
+    const jobCompanyAssignments = [
+      0, 0, 0, // First 3 jobs to TechCorp (index 0)
+      1, 1,    // Next 2 to DesignHub (index 1)
+      2, 2     // Next 2 to DataScience (index 2)
+    ]
+
+    for (let i = 0; i < jobs.length; i++) {
+      const jobData = jobs[i]
+      const companyIndex = jobCompanyAssignments[i] || 0
+      const company = createdCompanies[companyIndex]
 
       const job = await prisma.job.create({
         data: {
           ...jobData,
           companyId: company.id,
-          postedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000), // Random date within last 30 days
-          lastVerifiedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random date within last 7 days
+          postedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+          lastVerifiedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
           createdAt: new Date(),
           updatedAt: new Date()
         },
@@ -416,12 +431,17 @@ async function seed() {
 
     console.log(`✅ Created ${moments.length} moments per company`)
 
-    // 5. Create contacts
+    // 5. Create contacts - assign to first 3 companies
     console.log('👥 Creating contacts...')
-    const createdContacts = []
+    const contactCompanyAssignments = [
+      0, 0, 0, 0, 0, // First 5 contacts to TechCorp
+      1, 1, 1,       // Next 3 to DesignHub
+    ]
 
-    for (const contactData of contacts) {
-      const company = createdContacts[Math.floor(Math.random() * 3)] // First 3 companies get contacts
+    for (let i = 0; i < contacts.length; i++) {
+      const contactData = contacts[i]
+      const companyIndex = contactCompanyAssignments[i] || 0
+      const company = createdCompanies[companyIndex]
 
       await prisma.contact.create({
         data: {
@@ -430,8 +450,7 @@ async function seed() {
           lastVerifiedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date()
-        },
-        skipDuplicates: true
+        }
       })
     }
 
@@ -477,43 +496,14 @@ async function seed() {
     console.log('✅ Created sample outreach batch')
 
     // 8. Index jobs in Typesense (if configured)
-    if (process.env.TYPESENSE_API_KEY && process.env.TYPESENSE_API_KEY !== 'dummy-key-for-development') {
+    if (process.env.TYPESENSE_API_KEY && process.env.TYPESENSE_API_KEY !== 'xyz') {
       console.log('🔍 Indexing jobs in Typesense...')
       try {
-        const response = await fetch('http://localhost:8108/collections/jobs/documents/import', {
-          method: 'POST',
-          headers: {
-            'X-TYPESENSE-API-KEY': process.env.TYPESENSE_API_KEY,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            docs: createdJobs.map(job => ({
-              id: job.id,
-              title: job.title,
-              company_name: createdCompanies.find(c => c.id === job.companyId)?.name || '',
-              function: job.function,
-              major_tags: job.majorTags,
-              location: job.location,
-              remote_flag: job.remoteFlag,
-              paid_flag: job.paidFlag,
-              internship_type: job.internshipType,
-              ats_type: job.atsType,
-              posted_at: new Date(job.postedAt!).getTime(),
-              last_verified_at: new Date(job.lastVerifiedAt!).getTime(),
-              source_name: job.sourceName,
-              company_size_band: createdCompanies.find(c => c.id === job.companyId)?.sizeBand || '',
-              industry_tags: createdCompanies.find(c => c.id === job.companyId)?.industryTags || []
-            }))
-          })
-        })
-
-        if (response.ok) {
-          console.log('✅ Jobs indexed in Typesense successfully')
-        } else {
-          console.log('⚠️ Typesense indexing failed, but continuing...')
-        }
+        // Note: This would require the Typesense client to be properly configured
+        // For now, we'll skip this in the seed script as it's handled by the app
+        console.log('⚠️  Typesense indexing should be done via API endpoint: POST /api/jobs/reindex')
       } catch (error) {
-        console.log('⚠️ Typesense not available, skipping indexing')
+        console.log('⚠️  Typesense not available, skipping indexing')
       }
     }
 

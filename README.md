@@ -1,5 +1,16 @@
 # Pathfinder - Internship Discovery & Outreach Platform
 
+![Build Status](https://github.com/ebailine/EthanTestProject/workflows/Test%20and%20Build/badge.svg)
+![Node Version](https://img.shields.io/badge/node-%3E%3D18.17.0-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+
+> Transform your internship search from black hole applications to strategic, research-backed outreach.
+
+[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
+
+---
+
 Pathfinder aggregates internship opportunities across the web and helps students make effective, evidence-based outreach to hiring contacts.
 
 ## 🎯 Mission

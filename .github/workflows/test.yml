@@ -1,0 +1,78 @@
+name: Test and Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: pathfinder_dev
+          POSTGRES_USER: pathfinder
+          POSTGRES_DB: pathfinder
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.17.0'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd app && npm ci
+        cd ../ingestion && npm ci
+
+    - name: Setup environment
+      run: |
+        cp .env.example .env
+        cp .env.example app/.env
+
+    - name: Prisma generate
+      run: cd app && npm run db:generate
+
+    - name: Run migrations
+      run: cd app && npm run db:migrate
+      env:
+        DATABASE_URL: postgresql://pathfinder:pathfinder_dev@localhost:5432/pathfinder
+
+    - name: TypeScript check
+      run: npm run typecheck
+
+    - name: Lint
+      run: npm run lint
+
+    - name: Run tests
+      run: npm test
+
+    - name: Build
+      run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Test Docker Compose
+      run: |
+        docker-compose up -d
+        sleep 30
+        docker-compose ps
+        docker-compose down

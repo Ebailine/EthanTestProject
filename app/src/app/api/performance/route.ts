@@ -3,12 +3,17 @@ import { getPerformanceReport } from '@/lib/performance'
 
 export async function GET(request: NextRequest) {
   try {
-    // Check for admin permissions (simplified for MVP)
+    // Check for admin permissions
     const authHeader = request.headers.get('authorization')
+    const apiKeyHeader = request.headers.get('x-admin-api-key')
 
-    if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+    const isAuthorized =
+      (authHeader && authHeader === `Bearer ${process.env.ADMIN_API_KEY}`) ||
+      (apiKeyHeader && apiKeyHeader === process.env.ADMIN_API_KEY)
+
+    if (process.env.NODE_ENV === 'production' && !isAuthorized) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -17,6 +22,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      timestamp: new Date().toISOString(),
       data: performanceData
     })
 

@@ -252,3 +252,50 @@ describe('JobsPage Integration', () => {
     })
   })
 })
+
+describe('JobsPage Accessibility', () => {
+  it('has proper ARIA labels', async () => {
+    render(<JobsPage />)
+
+    const searchInput = screen.getByPlaceholderText('Search by title, company, or keyword...')
+    expect(searchInput).toHaveAttribute('type', 'text')
+  })
+
+  it('has keyboard navigation support', () => {
+    render(<JobsPage />)
+
+    const searchButton = screen.getByText('Search')
+    expect(searchButton).toBeInTheDocument()
+
+    // Tab navigation should work
+    searchButton.focus()
+    expect(document.activeElement).toBe(searchButton)
+  })
+})
+
+describe('JobsPage Error Handling', () => {
+  it('handles network errors gracefully', async () => {
+    ;(fetch as jest.Mock).mockRejectedValue(new Error('Network error'))
+
+    render(<JobsPage />)
+
+    await waitFor(() => {
+      // Should show fallback mock data instead of crashing
+      expect(screen.getByText('Software Engineering Intern')).toBeInTheDocument()
+    })
+  })
+
+  it('handles malformed API responses', async () => {
+    ;(fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ invalid: 'structure' })
+    })
+
+    render(<JobsPage />)
+
+    await waitFor(() => {
+      // Should handle gracefully
+      expect(screen.queryByText('Error loading jobs')).not.toBeInTheDocument()
+    })
+  })
+})

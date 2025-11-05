@@ -303,13 +303,28 @@ ${studentName}`,
   }
 
   private getMockContactSelection(contacts: any[]): ContactSelection {
-    const selectedContacts = contacts.slice(0, 5).map((contact, index) => {
+    const selectedContacts = contacts.slice(0, Math.min(5, contacts.length)).map((contact, index) => {
       let role = 'Team contact'
       let reason = 'Selected based on role and confidence'
 
       if (contact.dept === 'Recruiting') {
-        role = index === 0 ? 'Primary HR contact' : 'HR contact'
-        reason = 'Recruiting department contact with email access'
+        if (contact.title?.toLowerCase().includes('university') ||
+            contact.title?.toLowerCase().includes('campus')) {
+          role = 'Primary HR contact'
+          reason = 'University recruiter - ideal for internship outreach'
+        } else if (index === 0) {
+          role = 'Primary HR contact'
+          reason = 'Recruiting department lead with email access'
+        } else {
+          role = 'HR contact'
+          reason = 'Additional recruiting team member for follow-up'
+        }
+      } else if (contact.dept === 'Team') {
+        role = 'Team contact'
+        reason = 'Technical team member for role-specific questions'
+      } else if (contact.dept === 'EA') {
+        role = 'EA backup'
+        reason = 'Executive assistant for escalation if needed'
       }
 
       return {
@@ -320,8 +335,8 @@ ${studentName}`,
     })
 
     return {
-      selected_contacts,
-      summary: 'Selected top 5 contacts based on department diversity and email confidence'
+      selected_contacts: selectedContacts,
+      summary: `Selected ${selectedContacts.length} contacts with mix of recruiting (${selectedContacts.filter(c => c.role_in_outreach.includes('HR')).length}) and team members (${selectedContacts.filter(c => c.role_in_outreach === 'Team contact').length})`
     }
   }
 }
