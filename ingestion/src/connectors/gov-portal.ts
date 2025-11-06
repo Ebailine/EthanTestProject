@@ -181,7 +181,7 @@ export class GovPortalConnector {
       title: job.PositionTitle,
       company: job.OrganizationName,
       location: locations,
-      remoteFlag: false, Government jobs are typically not fully remote
+      remoteFlag: false, // Government jobs are typically not fully remote
       function: this.mapGovDepartmentToFunction(job.DepartmentName),
       sourceUrl: job.PositionURI,
       sourceName: 'USAJOBS',

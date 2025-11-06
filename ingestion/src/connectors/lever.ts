@@ -104,8 +104,8 @@ export class LeverConnector {
   }
 
   private isInternshipOrEntryLevel(title: string, content?: string): boolean {
-    const title = title.toLowerCase()
-    const content = content?.toLowerCase() || ''
+    const normalizedTitle = title.toLowerCase()
+    const normalizedContent = (content ?? '').toLowerCase()
 
     const internshipKeywords = [
       'internship', 'intern', 'co-op', 'co op', 'cooperative education',
@@ -118,11 +118,11 @@ export class LeverConnector {
     ]
 
     const hasInternshipKeyword = internshipKeywords.some(keyword =>
-      title.includes(keyword) || content.includes(keyword)
+      normalizedTitle.includes(keyword) || normalizedContent.includes(keyword)
     )
 
     const hasEntryLevelKeyword = entryLevelKeywords.some(keyword =>
-      title.includes(keyword) || content.includes(keyword)
+      normalizedTitle.includes(keyword) || normalizedContent.includes(keyword)
     )
 
     return hasInternshipKeyword || hasEntryLevelKeyword
@@ -152,8 +152,9 @@ export class LeverConnector {
 
   private extractCompanyNameFromUrl(boardUrl: string): string {
     // Extract company name from URL like "https://jobs.lever.co/uber"
-    const match = boardUrl.match(/\/([^\/]+)$/)
-    return match ? match[1].charAt(0).toUpperCase() + match[1].slice(1) : 'Unknown Company'
+    const segments = boardUrl.split('/').filter(Boolean)
+    const slug = segments[segments.length - 1]
+    return slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Unknown Company'
   }
 
   private extractRemoteStatus(location: string): boolean {

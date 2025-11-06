@@ -198,9 +198,9 @@ export class JobNormalizer {
   }
 
   private extractMajorTags(title: string, content?: string): string[] {
-    const title = title.toLowerCase()
-    const content = content?.toLowerCase() || ''
-    const combined = `${title} ${content}`
+    const normalizedTitle = title.toLowerCase()
+    const normalizedContent = (content ?? '').toLowerCase()
+    const combined = `${normalizedTitle} ${normalizedContent}`
 
     const majorMappings: { [key: string]: string[] } = {
       'computer science': ['computer science', 'computer engineering', 'software engineering'],
@@ -251,7 +251,7 @@ export class JobNormalizer {
       return true
     }
 
-    const content = content?.toLowerCase() || ''
+    const normalizedContent = (content ?? '').toLowerCase()
     const paidKeywords = [
       'paid', 'stipend', 'salary', 'compensation', '$', 'usd',
       'hourly rate', 'monthly stipend', 'weekly stipend'
@@ -262,8 +262,8 @@ export class JobNormalizer {
       'no compensation', 'uncompensated'
     ]
 
-    const hasPaidKeywords = paidKeywords.some(keyword => content.includes(keyword))
-    const hasUnpaidKeywords = unpaidKeywords.some(keyword => content.includes(keyword))
+    const hasPaidKeywords = paidKeywords.some(keyword => normalizedContent.includes(keyword))
+    const hasUnpaidKeywords = unpaidKeywords.some(keyword => normalizedContent.includes(keyword))
 
     return hasPaidKeywords || !hasUnpaidKeywords // Default to paid if no clear indicators
   }
@@ -279,10 +279,10 @@ export class JobNormalizer {
     }
 
     // Try to extract pay info from content
-    const content = content?.toLowerCase() || ''
+    const normalizedContent = (content ?? '').toLowerCase()
     const payRegex = /\$?(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:per\s*)?(hour|hr|month|year|annually|weekly)/i
 
-    const match = content.match(payRegex)
+    const match = normalizedContent.match(payRegex)
     if (match) {
       const amount = parseFloat(match[1].replace(/,/g, ''))
       const period = match[2].toLowerCase()
