@@ -41,16 +41,18 @@ export default function RootLayout({
     </div>
   )
 
+  const layoutContent = disableAuth ? (
+    appShell
+  ) : (
+    <ClerkProvider publishableKey={publishableKey}>
+      {appShell}
+    </ClerkProvider>
+  )
+
   return (
     <html lang="en" className={inter.className}>
       <body className="min-h-screen bg-gray-50">
-        {disableAuth ? (
-          appShell
-        ) : (
-          <ClerkProvider publishableKey={publishableKey}>
-            {appShell}
-          </ClerkProvider>
-        )}
+        {layoutContent}
       </body>
     </html>
   )
