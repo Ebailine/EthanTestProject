@@ -399,10 +399,17 @@ async function seed() {
     console.log('📰 Creating research sources...')
     for (const company of createdCompanies) {
       for (const sourceData of sources) {
-        await prisma.source.create({
-          data: {
+        // Create unique URL per company to avoid conflicts
+        const uniqueUrl = `${sourceData.url}?company=${company.id}`
+        await prisma.source.upsert({
+          where: { url: uniqueUrl },
+          update: {},
+          create: {
             companyId: company.id,
-            ...sourceData,
+            type: sourceData.type,
+            url: uniqueUrl,
+            title: sourceData.title,
+            publishedAt: sourceData.publishedAt,
             createdAt: new Date(),
             updatedAt: new Date()
           }
@@ -416,13 +423,15 @@ async function seed() {
     console.log('💡 Creating research moments...')
     for (const company of createdCompanies) {
       for (const momentData of moments) {
+        const { why_it_matters, ...restMomentData } = momentData as any
         await prisma.moment.create({
           data: {
             companyId: company.id,
             sourceId: (await prisma.source.findFirst({
               where: { companyId: company.id }
             }))!.id,
-            ...momentData,
+            ...restMomentData,
+            summary: why_it_matters, // Map why_it_matters to summary field
             createdAt: new Date()
           }
         })

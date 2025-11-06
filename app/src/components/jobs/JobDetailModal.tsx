@@ -311,7 +311,7 @@ function OverviewTab({ job }: { job: Job }) {
         <h3 className="font-semibold text-gray-900 mb-3">Position Details</h3>
         <div className="flex flex-wrap gap-2">
           {job.remoteFlag && <span className="badge-success">🌐 Remote Available</span>}
-          {job.paidFlag && <span className="badge-warning">💰 Paid Position</span>
+          {job.paidFlag && <span className="badge-warning">💰 Paid Position</span>}
           {job.status === 'active' && <span className="badge-primary">✅ Accepting Applications</span>}
         </div>
       </div>
