@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Circle, ArrowRight, User, Mail, Briefcase, GraduationCap } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
 
 interface OnboardingData {
   firstName: string
@@ -458,7 +459,7 @@ function ReviewStep({ data, onNext, onPrev, isLastStep, isSubmitting, onSubmit }
         <div>
           <h3 className="font-medium text-gray-900 mb-2">Academic Background</h3>
           <div className="bg-gray-50 p-4 rounded-lg">
-            <p><strong>Graduation Date:</strong> {data.gradDate ? new Date(data.gradDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : 'Not specified'}</p>
+            <p><strong>Graduation Date:</strong> {data.gradDate ? formatDate(data.gradDate, { year: 'numeric', month: 'long' }) : 'Not specified'}</p>
             {data.resumeUrl && <p><strong>Resume:</strong> Uploaded</p>}
           </div>
         </div>

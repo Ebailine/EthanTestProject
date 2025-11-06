@@ -13,6 +13,7 @@ import {
   AlertCircle,
   ExternalLink
 } from 'lucide-react'
+import { formatDateRelative } from '@/lib/utils'
 
 interface DashboardStats {
   totalOutreach: number
@@ -166,7 +167,7 @@ export default function DashboardPage() {
             {getStatusText()}
           </div>
           <div className="text-xs text-gray-500">
-            {activity.timestamp.toLocaleString()}
+            {formatDateRelative(activity.timestamp)}
           </div>
         </div>
       </div>

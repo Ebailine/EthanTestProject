@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, MapPin, DollarSign, Calendar, Building, ExternalLink, Users, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { formatDate, formatDateShort } from '@/lib/utils'
 
 interface JobDetailModalProps {
   jobId: string
@@ -357,15 +358,7 @@ function OverviewTab({ job }: { job: Job }) {
 
       {/* Posted Information */}
       <div className="text-sm text-gray-500">
-        Posted {new Date(job.postedAt).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })} • Last verified {new Date(job.lastVerifiedAt).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })}
+        Posted {formatDate(job.postedAt)} • Last verified {formatDate(job.lastVerifiedAt)}
       </div>
     </div>
   )
@@ -461,7 +454,7 @@ function ResearchTab({ moments, sources, researchQuality }: {
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                     <span className="capitalize">{source.type}</span>
                     {source.publishedAt && (
-                      <span>{new Date(source.publishedAt).toLocaleDateString()}</span>
+                      <span>{formatDateShort(source.publishedAt)}</span>
                     )}
                   </div>
                 </div>

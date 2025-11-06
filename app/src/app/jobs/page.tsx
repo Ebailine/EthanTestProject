@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Filter, MapPin, DollarSign, Calendar, Building, ExternalLink, UserPlus } from 'lucide-react'
 import { Job, SearchFilters } from '@/types'
+import { formatDateShort } from '@/lib/utils'
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
@@ -121,8 +122,8 @@ export default function JobsPage() {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-500">Posted {job.postedAt?.toLocaleDateString()}</p>
-          <p className="text-sm text-gray-500">Verified {job.lastVerifiedAt?.toLocaleDateString()}</p>
+          <p className="text-sm text-gray-500">Posted {formatDateShort(job.postedAt)}</p>
+          <p className="text-sm text-gray-500">Verified {formatDateShort(job.lastVerifiedAt)}</p>
         </div>
       </div>
 
