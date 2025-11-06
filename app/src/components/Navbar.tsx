@@ -12,7 +12,11 @@ import {
 } from '@clerk/nextjs'
 import { Menu, X, Search, Briefcase, User } from 'lucide-react'
 
-export function Navbar() {
+type NavbarProps = {
+  disableAuth?: boolean
+}
+
+export function Navbar({ disableAuth = false }: NavbarProps) {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,21 +85,29 @@ export function Navbar() {
 
           {/* Auth */}
           <div className="hidden md:flex items-center space-x-4">
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="text-gray-600 hover:text-primary-600 px-3 py-2 text-sm font-medium">
-                  Sign In
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="btn-primary text-sm">
-                  Get Started
-                </button>
-              </SignUpButton>
-            </SignedOut>
+            {disableAuth ? (
+              <span className="text-sm text-gray-500">
+                Authentication disabled
+              </span>
+            ) : (
+              <>
+                <SignedIn>
+                  <UserButton afterSignOutUrl="/" />
+                </SignedIn>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="text-gray-600 hover:text-primary-600 px-3 py-2 text-sm font-medium">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="btn-primary text-sm">
+                      Get Started
+                    </button>
+                  </SignUpButton>
+                </SignedOut>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -140,25 +152,33 @@ export function Navbar() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <SignedIn>
-                <div className="px-3 py-2">
-                  <UserButton afterSignOutUrl="/" />
-                </div>
-              </SignedIn>
-              <SignedOut>
-                <div className="space-y-2 px-3">
-                  <SignInButton mode="modal">
-                    <button className="w-full text-left text-gray-600 hover:text-primary-600 py-2 text-base font-medium">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
-                    <button className="w-full btn-primary text-base">
-                      Get Started
-                    </button>
-                  </SignUpButton>
-                </div>
-              </SignedOut>
+              {disableAuth ? (
+                <p className="px-3 py-2 text-sm text-gray-500">
+                  Authentication disabled for this environment.
+                </p>
+              ) : (
+                <>
+                  <SignedIn>
+                    <div className="px-3 py-2">
+                      <UserButton afterSignOutUrl="/" />
+                    </div>
+                  </SignedIn>
+                  <SignedOut>
+                    <div className="space-y-2 px-3">
+                      <SignInButton mode="modal">
+                        <button className="w-full text-left text-gray-600 hover:text-primary-600 py-2 text-base font-medium">
+                          Sign In
+                        </button>
+                      </SignInButton>
+                      <SignUpButton mode="modal">
+                        <button className="w-full btn-primary text-base">
+                          Get Started
+                        </button>
+                      </SignUpButton>
+                    </div>
+                  </SignedOut>
+                </>
+              )}
             </div>
           </div>
         )}
