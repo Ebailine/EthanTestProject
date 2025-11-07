@@ -1,15 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, MapPin, DollarSign, Calendar, Building, ExternalLink, UserPlus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, Filter, MapPin, DollarSign, Calendar, Building, ExternalLink, UserPlus, Loader2 } from 'lucide-react'
 import { Job, SearchFilters } from '@/types'
 import { formatDateShort } from '@/lib/utils'
 
 export default function JobsPage() {
+  const router = useRouter()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<SearchFilters>({})
   const [searchQuery, setSearchQuery] = useState('')
+  const [launchingBatch, setLaunchingBatch] = useState<string | null>(null)
 
   useEffect(() => {
     fetchJobs()
@@ -108,6 +111,32 @@ export default function JobsPage() {
     fetchJobs()
   }
 
+  const handleLaunchOutreach = async (jobId: string) => {
+    try {
+      setLaunchingBatch(jobId)
+
+      const response = await fetch('/api/outreach/launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Redirect to outreach status page
+        router.push(`/outreach/${data.batchId}`)
+      } else {
+        alert(`Failed to launch outreach: ${data.error}`)
+        setLaunchingBatch(null)
+      }
+    } catch (error) {
+      console.error('Launch error:', error)
+      alert('An error occurred. Please try again.')
+      setLaunchingBatch(null)
+    }
+  }
+
   const JobCard = ({ job }: { job: Job }) => (
     <div className="card hover:shadow-md transition-shadow duration-200">
       <div className="flex justify-between items-start mb-4">
@@ -154,9 +183,22 @@ export default function JobsPage() {
           <ExternalLink className="w-4 h-4" />
           Apply Now
         </a>
-        <button className="btn-primary text-sm flex items-center gap-2">
-          <UserPlus className="w-4 h-4" />
-          Launch Outreach
+        <button
+          onClick={() => handleLaunchOutreach(job.id)}
+          disabled={launchingBatch === job.id}
+          className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {launchingBatch === job.id ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Launching...
+            </>
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" />
+              Launch Outreach
+            </>
+          )}
         </button>
       </div>
     </div>
