@@ -26,6 +26,15 @@ import {
   TrendingUp,
   Clock,
   Star,
+  Mail,
+  Users,
+  Wand2,
+  Sparkles,
+  Zap,
+  Target,
+  Send,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react'
 import { Job, SearchFilters } from '@/types'
 import { formatDateShort } from '@/lib/utils'
@@ -43,6 +52,11 @@ export default function JobsPage() {
   const [sortBy, setSortBy] = useState('recent')
   const [salaryRange, setSalaryRange] = useState([0, 100])
   const [showSaveDialog, setShowSaveDialog] = useState<string | null>(null)
+
+  // n8n feature modals
+  const [showContactFinder, setShowContactFinder] = useState(false)
+  const [showAutoApply, setShowAutoApply] = useState(false)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   // Saved search feature
   const [savedSearches, setSavedSearches] = useState<any[]>([
@@ -357,6 +371,316 @@ export default function JobsPage() {
     )
   }
 
+  // Modal components
+  const ContactFinderModal = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black">Contact Finder</h3>
+                <p className="text-blue-100 text-sm">Find hiring managers automatically</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowContactFinder(false)}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-10 h-10 text-blue-600" />
+            </div>
+            <h4 className="text-2xl font-black text-gray-900 mb-2">Coming Soon Q1 2025</h4>
+            <p className="text-gray-600 text-lg">AI-powered contact discovery for every job</p>
+          </div>
+
+          {/* Features list */}
+          <div className="space-y-4 mb-8">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Auto-detect hiring managers</p>
+                <p className="text-sm text-gray-600">Find the right person at every company using LinkedIn and public data</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Verified email addresses</p>
+                <p className="text-sm text-gray-600">Get professional email addresses with 95%+ deliverability</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Contact enrichment</p>
+                <p className="text-sm text-gray-600">Phone numbers, LinkedIn profiles, and social media links</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Bulk discovery</p>
+                <p className="text-sm text-gray-600">Find contacts for hundreds of jobs in seconds</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200">
+            <p className="text-sm text-gray-700 mb-3">
+              <strong className="text-gray-900">Get early access:</strong> Join the waitlist to be the first to try Contact Finder when it launches.
+            </p>
+            <button className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+              Join Waitlist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const AutoApplyModal = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Wand2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black">Auto-Apply</h3>
+                <p className="text-purple-100 text-sm">Apply to jobs automatically</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAutoApply(false)}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-10 h-10 text-purple-600" />
+            </div>
+            <h4 className="text-2xl font-black text-gray-900 mb-2">Coming Soon Q1 2025</h4>
+            <p className="text-gray-600 text-lg">Automate your entire application process</p>
+          </div>
+
+          {/* Features list */}
+          <div className="space-y-4 mb-8">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Smart form filling</p>
+                <p className="text-sm text-gray-600">AI fills out applications using your profile and resume</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Custom cover letters</p>
+                <p className="text-sm text-gray-600">Generate tailored cover letters for each position</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">ATS compatibility</p>
+                <p className="text-sm text-gray-600">Works with Greenhouse, Lever, Workday, and 50+ ATS platforms</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-gray-900">Batch processing</p>
+                <p className="text-sm text-gray-600">Apply to 100+ jobs in minutes, not hours</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Demo steps */}
+          <div className="bg-gray-50 rounded-2xl p-6 mb-6">
+            <h5 className="font-bold text-gray-900 mb-4">How it works:</h5>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                <p className="text-sm text-gray-700">Select jobs you want to apply to</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                <p className="text-sm text-gray-700">AI reviews and fills applications</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                <p className="text-sm text-gray-700">Review and submit with one click</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
+            <p className="text-sm text-gray-700 mb-3">
+              <strong className="text-gray-900">Be the first to know:</strong> Get notified when Auto-Apply launches.
+            </p>
+            <button className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+              Join Waitlist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const AdvancedFiltersModal = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-8 text-white sticky top-0">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Target className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black">Advanced Filters</h3>
+                <p className="text-indigo-100 text-sm">Find your perfect match with precision</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAdvancedFilters(false)}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Sliders className="w-10 h-10 text-indigo-600" />
+            </div>
+            <h4 className="text-2xl font-black text-gray-900 mb-2">Coming Soon Q1 2025</h4>
+            <p className="text-gray-600 text-lg">Advanced search with 50+ filter options</p>
+          </div>
+
+          {/* Feature categories */}
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+              <div className="flex items-center gap-2 mb-4">
+                <Briefcase className="w-5 h-5 text-blue-600" />
+                <h5 className="font-bold text-gray-900">Company Insights</h5>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>• Company funding stage</li>
+                <li>• Growth trajectory</li>
+                <li>• Tech stack match</li>
+                <li>• Diversity metrics</li>
+                <li>• Work-life balance ratings</li>
+              </ul>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-5 h-5 text-purple-600" />
+                <h5 className="font-bold text-gray-900">Team & Culture</h5>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>• Team size & structure</li>
+                <li>• Manager experience</li>
+                <li>• Conversion rate to FT</li>
+                <li>• Mentorship programs</li>
+                <li>• Alumni outcomes</li>
+              </ul>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <h5 className="font-bold text-gray-900">Compensation</h5>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>• Total comp (salary + equity)</li>
+                <li>• Signing bonuses</li>
+                <li>• Housing stipends</li>
+                <li>• Relocation packages</li>
+                <li>• Return offer rates</li>
+              </ul>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-6 border border-orange-200">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-5 h-5 text-orange-600" />
+                <h5 className="font-bold text-gray-900">Requirements</h5>
+              </div>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>• GPA requirements</li>
+                <li>• Year in school</li>
+                <li>• Required skills</li>
+                <li>• Visa sponsorship</li>
+                <li>• Security clearance</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Additional features */}
+          <div className="bg-gray-50 rounded-2xl p-6 mb-6">
+            <h5 className="font-bold text-gray-900 mb-4">Plus more advanced features:</h5>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span>Boolean search operators</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span>Saved filter presets</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span>Custom field combinations</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span>AI-powered recommendations</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200">
+            <p className="text-sm text-gray-700 mb-3">
+              <strong className="text-gray-900">Want early access?</strong> Join the waitlist to be among the first to use Advanced Filters.
+            </p>
+            <button className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+              Join Waitlist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       <MainNav />
@@ -585,6 +909,30 @@ export default function JobsPage() {
                   {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   {showFilters ? 'Hide' : 'Show'} Filters
                 </button>
+
+                {/* n8n Feature Buttons */}
+                <button
+                  onClick={() => setShowContactFinder(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  Contact Finder
+                </button>
+                <button
+                  onClick={() => setShowAutoApply(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl text-sm font-semibold hover:shadow-md transition-all flex items-center gap-2"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  Auto-Apply
+                </button>
+                <button
+                  onClick={() => setShowAdvancedFilters(true)}
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                >
+                  <Target className="w-4 h-4" />
+                  Advanced Filters
+                </button>
+
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <TrendingUp className="w-4 h-4" />
                   <span className="font-semibold">{jobs.length} jobs found</span>
@@ -668,6 +1016,11 @@ export default function JobsPage() {
             <span className="font-semibold">Job saved successfully!</span>
           </div>
         )}
+
+        {/* Modals */}
+        {showContactFinder && <ContactFinderModal />}
+        {showAutoApply && <AutoApplyModal />}
+        {showAdvancedFilters && <AdvancedFiltersModal />}
       </div>
     </div>
   )
