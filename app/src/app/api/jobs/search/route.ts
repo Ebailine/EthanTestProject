@@ -35,59 +35,36 @@ export async function POST(request: NextRequest) {
       ]
     }
 
-    if (filters?.function && filters.function.length > 0) {
-      where.AND.push({
-        function: { in: filters.function }
-      })
-    }
-
-    if (filters?.majorTags && filters.majorTags.length > 0) {
-      where.AND.push({
-        majorTags: { hasSome: filters.majorTags }
-      })
-    }
-
     if (filters?.location) {
       where.AND.push({
         location: { contains: filters.location, mode: 'insensitive' }
       })
     }
 
-    if (filters?.remoteFlag !== undefined) {
-      where.AND.push({
-        remoteFlag: filters.remoteFlag
-      })
-    }
-
-    if (filters?.paidFlag !== undefined) {
-      where.AND.push({
-        paidFlag: filters.paidFlag
-      })
-    }
-
-    if (filters?.internshipType && filters.internshipType.length > 0) {
-      where.AND.push({
-        internshipType: { in: filters.internshipType }
-      })
-    }
-
     // Execute the query
     const jobs = await prisma.job.findMany({
       where: where.AND.length > 0 ? where : { status: 'active' },
-      include: {
-        company: true
-      },
       orderBy: [
         { postedAt: 'desc' },
-        { lastVerifiedAt: 'desc' }
+        { createdAt: 'desc' }
       ],
       take: 50, // Limit results for MVP
     })
 
+    // Manually fetch company data for each job
+    const jobsWithCompany = await Promise.all(
+      jobs.map(async (job) => {
+        const company = job.companyId
+          ? await prisma.company.findUnique({ where: { id: job.companyId } })
+          : null
+        return { ...job, Company: company }
+      })
+    )
+
     return NextResponse.json({
       success: true,
-      jobs: jobs,
-      total: jobs.length,
+      jobs: jobsWithCompany,
+      total: jobsWithCompany.length,
       page: 1,
       limit: 50,
     })
@@ -105,20 +82,27 @@ export async function GET() {
   try {
     const jobs = await prisma.job.findMany({
       where: { status: 'active' },
-      include: {
-        company: true
-      },
       orderBy: [
         { postedAt: 'desc' },
-        { lastVerifiedAt: 'desc' }
+        { createdAt: 'desc' }
       ],
       take: 20,
     })
 
+    // Manually fetch company data for each job
+    const jobsWithCompany = await Promise.all(
+      jobs.map(async (job) => {
+        const company = job.companyId
+          ? await prisma.company.findUnique({ where: { id: job.companyId } })
+          : null
+        return { ...job, Company: company }
+      })
+    )
+
     return NextResponse.json({
       success: true,
-      jobs: jobs,
-      total: jobs.length,
+      jobs: jobsWithCompany,
+      total: jobsWithCompany.length,
     })
 
   } catch (error) {

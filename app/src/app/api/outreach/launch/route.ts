@@ -17,44 +17,123 @@ export async function POST(request: NextRequest) {
     // Validate job exists
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: { company: true },
     })
 
     if (!job) {
       return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 })
     }
 
-    if (!job.company) {
+    // Fetch company data separately
+    const company = job.companyId
+      ? await prisma.company.findUnique({ where: { id: job.companyId } })
+      : null
+
+    if (!company) {
       return NextResponse.json(
         { success: false, error: 'Company data missing for this job' },
         { status: 400 }
       )
     }
 
-    console.log(`🚀 Launching outreach for job: ${job.title} at ${job.company.name}`)
+    console.log(`🚀 Launching outreach for job: ${job.title} at ${company.name}`)
 
-    // Start orchestration (runs async)
-    const result = await outreachOrchestrator.executeOutreachFlow({
-      jobId,
-      userId: undefined, // TODO: Get from auth when enabled
-      maxContacts: 5,
+    // Create outreach batch
+    const batch = await prisma.outreachBatch.create({
+      data: {
+        jobId,
+        companyId: company.id,
+        status: 'pending',
+        currentStep: 'Initializing...',
+        progress: 0,
+        startedAt: new Date(),
+      },
     })
 
-    if (!result.success) {
+    // Trigger n8n webhook
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL
+
+    if (!n8nWebhookUrl) {
+      console.warn('⚠️ N8N_WEBHOOK_URL not configured, running local orchestration')
+
+      // Fallback to local orchestration if n8n not configured
+      const result = await outreachOrchestrator.executeOutreachFlow({
+        jobId,
+        userId: undefined,
+        maxContacts: 5,
+      })
+
+      if (!result.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: result.errorMessage,
+          },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        batchId: result.batchId,
+        message: 'Outreach initiated successfully (local)',
+      })
+    }
+
+    // Trigger n8n workflow
+    try {
+      console.log(`🔔 Triggering n8n workflow: ${n8nWebhookUrl}`)
+
+      const webhookPayload = {
+        batchId: batch.id,
+        jobId: job.id,
+        jobTitle: job.title,
+        jobDescription: job.description,
+        companyId: company.id,
+        companyName: company.name,
+        companyDomain: company.domain,
+        companyWebsite: company.websiteUrl,
+        maxContacts: 5,
+      }
+
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`n8n webhook failed: ${response.status} ${response.statusText}`)
+      }
+
+      console.log('✅ n8n workflow triggered successfully')
+
+      return NextResponse.json({
+        success: true,
+        batchId: batch.id,
+        message: 'Outreach initiated via n8n workflow',
+      })
+    } catch (error: any) {
+      console.error('❌ n8n webhook error:', error)
+
+      // Update batch with error
+      await prisma.outreachBatch.update({
+        where: { id: batch.id },
+        data: {
+          status: 'failed',
+          errorMessage: `Failed to trigger n8n workflow: ${error.message}`,
+        },
+      })
+
       return NextResponse.json(
         {
           success: false,
-          error: result.errorMessage,
+          error: `Failed to trigger n8n workflow: ${error.message}`,
         },
         { status: 500 }
       )
     }
-
-    return NextResponse.json({
-      success: true,
-      batchId: result.batchId,
-      message: 'Outreach initiated successfully',
-    })
   } catch (error: any) {
     console.error('❌ Launch outreach error:', error)
     return NextResponse.json(

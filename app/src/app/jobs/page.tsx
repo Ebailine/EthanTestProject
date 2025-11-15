@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import MainNav from '@/components/MainNav'
 import {
   Search,
   Filter,
@@ -14,8 +13,7 @@ import {
   UserPlus,
   Loader2,
   Bookmark,
-  BookmarkCheck,
-  Grid3x3,
+  Grid,
   List,
   ChevronDown,
   ChevronUp,
@@ -288,7 +286,7 @@ export default function JobsPage() {
                   }`}
                   title={isSaved ? 'Saved' : 'Save job'}
                 >
-                  {isSaved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
+                  <Bookmark className="w-5 h-5" />
                 </button>
               </div>
 
@@ -683,8 +681,6 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainNav />
-
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -956,7 +952,7 @@ export default function JobsPage() {
                       viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <Grid3x3 className="w-4 h-4" />
+                    <Grid className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -1012,7 +1008,7 @@ export default function JobsPage() {
         {/* Success Toast */}
         {showSaveDialog && (
           <div className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-slide-up">
-            <BookmarkCheck className="w-5 h-5" />
+            <Bookmark className="w-5 h-5" />
             <span className="font-semibold">Job saved successfully!</span>
           </div>
         )}

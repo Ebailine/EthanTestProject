@@ -27,21 +27,26 @@ export class OutreachOrchestrator {
     // Fetch job details first to get companyId
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: {
-        company: true,
-      },
     })
 
-    if (!job || !job.company) {
-      throw new Error('Job or company not found')
+    if (!job) {
+      throw new Error('Job not found')
+    }
+
+    // Fetch company separately
+    const company = job.companyId
+      ? await prisma.company.findUnique({ where: { id: job.companyId } })
+      : null
+
+    if (!company) {
+      throw new Error('Company not found for this job')
     }
 
     // Create outreach batch
     const batch = await prisma.outreachBatch.create({
       data: {
         jobId,
-        companyId: job.company.id,
-        userId: userId || null,
+        companyId: company.id,
         status: 'pending',
         currentStep: 'Initializing...',
         progress: 0,
@@ -53,14 +58,14 @@ export class OutreachOrchestrator {
       // STEP 1: Fetch job details
       await this.updateBatchStatus(batch.id, 'finding_contacts', 'Loading job details...', 10)
 
-      console.log(`📋 Job: ${job.title} at ${job.company.name}`)
+      console.log(`📋 Job: ${job.title} at ${company.name}`)
 
       // STEP 2: Find hiring contacts via Apollo
       await this.updateBatchStatus(batch.id, 'finding_contacts', 'Searching for hiring managers...', 20)
 
       const apolloContacts = await apolloService.findHiringContacts({
-        companyDomain: job.company.domain || job.company.website || '',
-        companyName: job.company.name,
+        companyDomain: company.domain || company.websiteUrl || '',
+        companyName: company.name,
         limit: maxContacts * 2, // Get more than needed to filter
       })
 
@@ -96,7 +101,7 @@ export class OutreachOrchestrator {
         )
 
         // Research via LinkedIn if URL available
-        let researchSummary = `Professional at ${job.company.name}`
+        let researchSummary = `Professional at ${company.name}`
         let linkedinData = null
 
         if (apolloContact.linkedin_url) {
@@ -105,7 +110,7 @@ export class OutreachOrchestrator {
             if (linkedinData) {
               researchSummary = await linkedInResearch.generateResearchSummary(
                 linkedinData,
-                job.company.name,
+                company.name,
                 job.title
               )
             }
@@ -114,10 +119,18 @@ export class OutreachOrchestrator {
           }
         }
 
-        // Create contact record
-        const contact = await prisma.contact.create({
-          data: {
-            companyId: job.company.id,
+        // Use upsert to avoid unique constraint errors on duplicate contacts
+        const contactEmail = apolloContact.email || `no-email-${apolloContact.id}@placeholder.local`
+
+        const contact = await prisma.contact.upsert({
+          where: {
+            email_companyId: {
+              email: contactEmail,
+              companyId: company.id,
+            },
+          },
+          update: {
+            // Update existing contact with latest data
             batchId: batch.id,
             fullName: apolloContact.name,
             firstName: apolloContact.first_name,
@@ -125,7 +138,31 @@ export class OutreachOrchestrator {
             title: apolloContact.title,
             department: apolloContact.departments?.[0] || null,
             seniority: apolloContact.seniority || null,
-            email: apolloContact.email,
+            email: contactEmail,
+            emailStatus: apolloContact.email_status || 'unknown',
+            emailConfidence: apolloContact.email ? 0.85 : 0.0,
+            linkedinUrl: apolloContact.linkedin_url,
+            photoUrl: apolloContact.photo_url,
+            headline: linkedinData?.headline || apolloContact.headline,
+            location:
+              apolloContact.city && apolloContact.state
+                ? `${apolloContact.city}, ${apolloContact.state}`
+                : null,
+            researchSummary,
+            verifiedAt: new Date(),
+            updatedAt: new Date(),
+          },
+          create: {
+            // Create new contact
+            companyId: company.id,
+            batchId: batch.id,
+            fullName: apolloContact.name,
+            firstName: apolloContact.first_name,
+            lastName: apolloContact.last_name,
+            title: apolloContact.title,
+            department: apolloContact.departments?.[0] || null,
+            seniority: apolloContact.seniority || null,
+            email: contactEmail,
             emailStatus: apolloContact.email_status || 'unknown',
             emailConfidence: apolloContact.email ? 0.85 : 0.0,
             linkedinUrl: apolloContact.linkedin_url,
@@ -143,11 +180,6 @@ export class OutreachOrchestrator {
 
         contactRecords.push(contact)
       }
-
-      await prisma.outreachBatch.update({
-        where: { id: batch.id },
-        data: { totalContactsEnriched: contactRecords.length },
-      })
 
       console.log(`✅ Created ${contactRecords.length} contact records with research`)
 
@@ -171,8 +203,8 @@ export class OutreachOrchestrator {
             recipientName: contact.fullName,
             recipientTitle: contact.title,
             recipientResearch: contact.researchSummary || '',
-            companyName: job.company.name,
-            companyDescription: job.company.industryTags.join(', '),
+            companyName: company.name,
+            companyDescription: company.industry || company.description || '',
             jobTitle: job.title,
             jobDescription: job.description || '',
             studentName: 'Student', // TODO: Get from user profile
@@ -230,7 +262,6 @@ export class OutreachOrchestrator {
         data: {
           status: 'failed',
           errorMessage: error.message,
-          errorStep: 'orchestration',
           completedAt: new Date(),
         },
       })

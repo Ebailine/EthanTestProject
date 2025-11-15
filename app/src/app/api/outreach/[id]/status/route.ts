@@ -7,35 +7,38 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const { id: batchId } = params
 
-    // Fetch batch with all related data
+    // Fetch batch
     const batch = await prisma.outreachBatch.findUnique({
       where: { id: batchId },
-      include: {
-        job: {
-          include: {
-            company: true,
-          },
-        },
-        contacts: {
-          orderBy: { createdAt: 'asc' },
-        },
-        emails: {
-          include: {
-            contact: true,
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
     })
 
     if (!batch) {
       return NextResponse.json({ success: false, error: 'Outreach batch not found' }, { status: 404 })
     }
 
+    // Fetch related data manually
+    const job = batch.jobId
+      ? await prisma.job.findUnique({ where: { id: batch.jobId } })
+      : null
+
+    const company = job?.companyId
+      ? await prisma.company.findUnique({ where: { id: job.companyId } })
+      : null
+
+    const contacts = await prisma.contact.findMany({
+      where: { batchId },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    const emails = await prisma.outreachEmail.findMany({
+      where: { batchId },
+      orderBy: { createdAt: 'asc' },
+    })
+
     // Calculate derived data
     const isComplete = batch.status === 'completed' || batch.status === 'failed'
-    const hasContacts = batch.contacts.length > 0
-    const hasEmails = batch.emails.length > 0
+    const hasContacts = contacts.length > 0
+    const hasEmails = emails.length > 0
 
     return NextResponse.json({
       success: true,
@@ -56,26 +59,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
         // Counts
         totalContactsFound: batch.totalContactsFound,
-        totalContactsEnriched: batch.totalContactsEnriched,
         totalEmailsDrafted: batch.totalEmailsDrafted,
 
         // Error info
         errorMessage: batch.errorMessage,
-        errorStep: batch.errorStep,
 
         // Job details
-        job: {
-          id: batch.job.id,
-          title: batch.job.title,
+        job: job && company ? {
+          id: job.id,
+          title: job.title,
           company: {
-            name: batch.job.company.name,
-            logo: batch.job.company.website,
+            name: company.name,
+            logo: company.websiteUrl,
           },
-        },
+        } : null,
 
         // Contacts with emails
-        results: batch.contacts.map((contact) => {
-          const email = batch.emails.find((e) => e.contactId === contact.id)
+        results: contacts.map((contact) => {
+          const email = emails.find((e) => e.contactId === contact.id)
 
           return {
             contact: {

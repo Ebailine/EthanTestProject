@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ParticlesBackground } from '@/components/ui/ParticlesBackground'
 import {
   DndContext,
   DragEndEvent,
@@ -443,8 +442,6 @@ export default function CRMPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
-      <ParticlesBackground />
-
       <div className="relative z-10">
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
